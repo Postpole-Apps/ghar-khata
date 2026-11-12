@@ -34,11 +34,6 @@ import com.postpole.gharkhata.billing.BillingMessage
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProScreen(onBack: () -> Unit, viewModel: ProViewModel = hiltViewModel()) {
-    val isPro by viewModel.isPro.collectAsStateWithLifecycle()
-    val price by viewModel.price.collectAsStateWithLifecycle()
-    val pending by viewModel.pending.collectAsStateWithLifecycle()
-    val unavailable by viewModel.productUnavailable.collectAsStateWithLifecycle()
-    val activity = LocalContext.current.findActivity()
     val snackbarHostState = remember { SnackbarHostState() }
     val purchaseError = stringResource(R.string.pro_error_purchase)
     val launchError = stringResource(R.string.pro_error_launch)
@@ -62,35 +57,43 @@ fun ProScreen(onBack: () -> Unit, viewModel: ProViewModel = hiltViewModel()) {
             )
         },
     ) { padding ->
-        Column(
-            Modifier.fillMaxSize().padding(padding).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(stringResource(R.string.pro_features_title), style = MaterialTheme.typography.titleLarge)
-            // Placeholder feature list: replace per app.
-            listOf(R.string.pro_feature_1, R.string.pro_feature_2, R.string.pro_feature_3).forEach {
-                Text("• " + stringResource(it))
+        ProContent(viewModel, Modifier.fillMaxSize().padding(padding).padding(16.dp))
+    }
+}
+
+/** Pro pitch + buy/restore actions. Shared by [ProScreen] and [ProSheet]. */
+@Composable
+fun ProContent(viewModel: ProViewModel, modifier: Modifier = Modifier) {
+    val isPro by viewModel.isPro.collectAsStateWithLifecycle()
+    val price by viewModel.price.collectAsStateWithLifecycle()
+    val pending by viewModel.pending.collectAsStateWithLifecycle()
+    val unavailable by viewModel.productUnavailable.collectAsStateWithLifecycle()
+    val activity = LocalContext.current.findActivity()
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(stringResource(R.string.pro_features_title), style = MaterialTheme.typography.titleLarge)
+        // Placeholder feature list: replace per app.
+        listOf(R.string.pro_feature_1, R.string.pro_feature_2, R.string.pro_feature_3).forEach {
+            Text("• " + stringResource(it))
+        }
+        when {
+            isPro -> Text(stringResource(R.string.pro_active), style = MaterialTheme.typography.titleMedium)
+            pending -> Text(stringResource(R.string.pro_pending))
+            unavailable && price == null -> Text(stringResource(R.string.pro_unavailable))
+            else -> Button(
+                onClick = { activity?.let(viewModel::buy) },
+                enabled = price != null && activity != null,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(price?.let { stringResource(R.string.pro_buy, it) } ?: stringResource(R.string.pro_loading))
             }
-            when {
-                isPro -> Text(stringResource(R.string.pro_active), style = MaterialTheme.typography.titleMedium)
-                pending -> Text(stringResource(R.string.pro_pending))
-                unavailable && price == null -> Text(stringResource(R.string.pro_unavailable))
-                else -> Button(
-                    onClick = { activity?.let(viewModel::buy) },
-                    enabled = price != null && activity != null,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(price?.let { stringResource(R.string.pro_buy, it) } ?: stringResource(R.string.pro_loading))
-                }
-            }
-            OutlinedButton(onClick = viewModel::restore, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.pro_restore))
-            }
+        }
+        OutlinedButton(onClick = viewModel::restore, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.pro_restore))
         }
     }
 }
 
-private tailrec fun Context.findActivity(): Activity? = when (this) {
+internal tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
     else -> null

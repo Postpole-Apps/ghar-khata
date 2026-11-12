@@ -12,9 +12,11 @@ import com.postpole.gharkhata.review.ReviewPolicy
 import com.postpole.gharkhata.review.ReviewPrompter
 import com.postpole.gharkhata.billing.BillingGateway
 import com.postpole.gharkhata.billing.BillingRepository
+import com.postpole.gharkhata.ui.provider.ProStatus
 import com.postpole.gharkhata.billing.PlayBillingGateway
 import com.postpole.gharkhata.data.AppDatabase
 import com.postpole.gharkhata.data.DayMarkDao
+import com.postpole.gharkhata.data.MIGRATION_1_2
 import com.postpole.gharkhata.data.MonthSettlementDao
 import com.postpole.gharkhata.data.ProviderDao
 import com.postpole.gharkhata.data.RateChangeDao
@@ -35,7 +37,9 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "app.db").build()
+        Room.databaseBuilder(context, AppDatabase::class.java, "app.db")
+            .addMigrations(MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideProviderDao(db: AppDatabase): ProviderDao = db.providerDao()
@@ -66,6 +70,12 @@ object AppModule {
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
         analytics = analytics,
     )
+
+    @Provides
+    @Singleton
+    fun provideProStatus(billing: BillingRepository): ProStatus = object : ProStatus {
+        override val isPro = billing.isPro
+    }
 
     @Provides
     @Singleton
