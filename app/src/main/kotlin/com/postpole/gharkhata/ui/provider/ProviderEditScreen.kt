@@ -365,17 +365,14 @@ internal fun ProviderEditContent(
             )
 
             if (form.billingMode != BillingMode.PER_UNIT) {
-                OutlinedTextField(
+                StepperField(
+                    label = stringResource(R.string.provider_paid_leaves),
                     value = form.paidLeaves,
                     onValueChange = { v -> onUpdate { it.copy(paidLeaves = v) } },
-                    label = { Text(stringResource(R.string.provider_paid_leaves)) },
-                    isError = FormError.LEAVES_INVALID in errors,
-                    supportingText = if (FormError.LEAVES_INVALID in errors) {
-                        { Text(stringResource(R.string.provider_leaves_invalid)) }
-                    } else null,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    shape = MaterialTheme.shapes.large,
+                    onMinus = { onUpdate { it.copy(paidLeaves = ((it.paidLeaves.trim().toIntOrNull() ?: 0) - 1).coerceAtLeast(0).toString()) } },
+                    onPlus = { onUpdate { it.copy(paidLeaves = ((it.paidLeaves.trim().toIntOrNull() ?: 0) + 1).coerceAtMost(31).toString()) } },
+                    error = if (FormError.LEAVES_INVALID in errors) stringResource(R.string.provider_leaves_invalid) else null,
+                    keyboardType = KeyboardType.Number,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -386,7 +383,7 @@ internal fun ProviderEditContent(
                     val on = form.scheduleMask and bit != 0
                     val fullName = stringResource(full)
                     Box(
-                        // 48 dp touch target around the 40 dp chip.
+                        // 48 dp touch target around the 32 dp chip.
                         Modifier.size(48.dp).semantics {
                             contentDescription = fullName
                             selected = on
@@ -394,7 +391,7 @@ internal fun ProviderEditContent(
                         contentAlignment = Alignment.Center,
                     ) {
                         Box(
-                            Modifier.size(40.dp).clip(CircleShape)
+                            Modifier.size(32.dp).clip(CircleShape)
                                 .background(if (on) gk.hero else MaterialTheme.colorScheme.surfaceContainerHigh),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -498,6 +495,7 @@ private fun StepperField(
     onPlus: () -> Unit,
     error: String?,
     modifier: Modifier = Modifier,
+    keyboardType: KeyboardType = KeyboardType.Decimal,
 ) {
     val cs = MaterialTheme.colorScheme
     val gk = MaterialTheme.gharColors
@@ -512,7 +510,7 @@ private fun StepperField(
                     value = value,
                     onValueChange = onValueChange,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = cs.onSurface),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
                     singleLine = true,
                     cursorBrush = SolidColor(cs.primary),
                     modifier = Modifier.semantics { contentDescription = label },

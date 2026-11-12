@@ -110,6 +110,20 @@ class BackupRepositoryTest {
     }
 
     @Test
+    fun import_olderFormatV2ProviderWithoutArchivedOnEpochDay_restoresNull() = runBlocking {
+        val p = """{"id":1,"name":"a","type":"MILK","billingMode":"PER_UNIT","unitLabel":"L","defaultQty":1.0,""" +
+            """"scheduleMask":0,"paidLeavesPerMonth":0,"startEpochDay":1,"archived":true,"phone":null,""" +
+            """"note":null,"sortOrder":0,"createdAt":1}"""
+        val text = """{"format":"postpole-backup","version":2,"providers":[$p],""" +
+            """"rate_changes":[],"day_marks":[],"month_settlements":[]}"""
+        assertEquals(1, importText(text))
+        val restored = db.providerDao().getAll().single()
+        assertEquals("a", restored.name)
+        assertEquals(true, restored.archived)
+        assertEquals(null, restored.archivedOnEpochDay)
+    }
+
+    @Test
     fun csv_isHeaderOnlyPlaceholder() = runBlocking {
         val out = ByteArrayOutputStream()
         assertEquals(0, repo.exportItemsCsv(out))
