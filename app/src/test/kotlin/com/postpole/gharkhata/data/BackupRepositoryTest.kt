@@ -34,63 +34,85 @@ class BackupRepositoryTest {
 
     private suspend fun importText(text: String) = repo.importJson(ByteArrayInputStream(text.toByteArray()))
 
+    private fun provider(name: String) = ProviderEntity(
+        name = name,
+        type = ProviderType.MILK,
+        billingMode = BillingMode.PER_UNIT,
+        unitLabel = "L",
+        defaultQty = 1.5,
+        scheduleMask = 0b1111111,
+        startEpochDay = 20_000,
+        phone = "98xx",
+        createdAt = 5,
+    )
+
     @Test
-    fun roundTrip_restoresAllItemsExactly() = runBlocking {
-        val dao = db.itemDao()
-        dao.insert(Item(title = "plain", createdAt = 10))
-        dao.insert(Item(title = "unicode ₹ 日本語 \"quoted\"\nnewline", createdAt = 20))
-        val before = dao.getAll()
+    fun roundTrip_restoresAllTablesExactly() = runBlocking {
+        val id = db.providerDao().upsert(provider("Milk \"quoted\" ₹ 日本語\nnewline"))
+        db.rateChangeDao().insert(RateChangeEntity(providerId = id, effectiveFromEpochDay = 20_000, amountPaise = 6000))
+        db.dayMarkDao().upsert(DayMarkEntity(id, 20_001, DayStatus.PRESENT, qty = 2.0, updatedAt = 9))
+        db.dayMarkDao().upsert(DayMarkEntity(id, 20_002, DayStatus.ABSENT, updatedAt = 9))
+        db.monthSettlementDao().upsert(MonthSettlementEntity(id, 202611, 18000, 18000, 20_030, "paid"))
+        val providers = db.providerDao().getAll()
+        val rates = db.rateChangeDao().getAll()
+        val marks = db.dayMarkDao().getAll()
+        val settlements = db.monthSettlementDao().getAll()
         val json = export()
 
-        dao.deleteAll()
-        dao.insert(Item(title = "other data that must be replaced", createdAt = 99))
+        db.providerDao().deleteAll()
+        db.providerDao().upsert(provider("other data that must be replaced"))
         val count = importText(json)
 
-        assertEquals(2, count)
-        assertEquals(before, dao.getAll())
+        assertEquals(1, count)
+        assertEquals(providers, db.providerDao().getAll())
+        assertEquals(rates, db.rateChangeDao().getAll())
+        assertEquals(marks, db.dayMarkDao().getAll())
+        assertEquals(settlements, db.monthSettlementDao().getAll())
     }
 
     @Test
     fun roundTrip_emptyDatabase() = runBlocking {
         val json = export()
-        db.itemDao().insert(Item(title = "x", createdAt = 1))
+        db.providerDao().upsert(provider("x"))
         assertEquals(0, importText(json))
-        assertEquals(emptyList<Item>(), db.itemDao().getAll())
+        assertEquals(emptyList<ProviderEntity>(), db.providerDao().getAll())
     }
 
     @Test
     fun export_isVersionedAndNamed() {
         val json = export()
         assertEquals(true, json.contains("\"format\": \"postpole-backup\""))
-        assertEquals(true, json.contains("\"version\": 1"))
+        assertEquals(true, json.contains("\"version\": 2"))
     }
 
     @Test
     fun invalidImport_leavesExistingDataUntouched() = runBlocking {
-        db.itemDao().insert(Item(title = "keep", createdAt = 1))
+        db.providerDao().upsert(provider("keep"))
+        val empty = """"rate_changes":[],"day_marks":[],"month_settlements":[]"""
+        val p = """{"id":1,"name":"a","type":"MILK","billingMode":"PER_UNIT","unitLabel":"L","defaultQty":1.0,""" +
+            """"scheduleMask":0,"paidLeavesPerMonth":0,"startEpochDay":1,"archived":false,"phone":null,""" +
+            """"note":null,"sortOrder":0,"createdAt":1}"""
         listOf(
             "not json",
-            """{"format":"other","version":1,"items":[]}""",
-            """{"format":"postpole-backup","version":999,"items":[]}""",
-            """{"format":"postpole-backup","version":1,"items":[{"id":1,"title":"a"}]}""",
-            """{"format":"postpole-backup","version":1,"items":[{"id":1,"title":"a","createdAt":1},{"id":1,"title":"b","createdAt":2}]}""",
+            """{"format":"other","version":2,"providers":[],$empty}""",
+            """{"format":"postpole-backup","version":999,"providers":[],$empty}""",
+            """{"format":"postpole-backup","version":1,"items":[]}""",
+            """{"format":"postpole-backup","version":2,$empty}""",
+            """{"format":"postpole-backup","version":2,"providers":[{"id":1,"name":"a"}],$empty}""",
+            """{"format":"postpole-backup","version":2,"providers":[$p,$p],$empty}""",
+            """{"format":"postpole-backup","version":2,"providers":[${p.replace("MILK", "NOPE")}],$empty}""",
+            """{"format":"postpole-backup","version":2,"providers":[],"rate_changes":[{"id":1,"providerId":7,""" +
+                """"effectiveFromEpochDay":1,"amountPaise":1}],"day_marks":[],"month_settlements":[]}""",
         ).forEach { bad ->
-            assertThrows(InvalidBackupException::class.java) { runBlocking { importText(bad) } }
+            assertThrows(bad, InvalidBackupException::class.java) { runBlocking { importText(bad) } }
         }
-        assertEquals(listOf("keep"), db.itemDao().getAll().map { it.title })
+        assertEquals(listOf("keep"), db.providerDao().getAll().map { it.name })
     }
 
     @Test
-    fun csv_hasHeaderEscapesAndNeutralisesFormulas() = runBlocking {
-        val dao = db.itemDao()
-        dao.insert(Item(title = "a,b", createdAt = 1))
-        dao.insert(Item(title = "say \"hi\"", createdAt = 2))
-        dao.insert(Item(title = "=SUM(A1)", createdAt = 3))
+    fun csv_isHeaderOnlyPlaceholder() = runBlocking {
         val out = ByteArrayOutputStream()
-        assertEquals(3, repo.exportItemsCsv(out))
-        assertEquals(
-            "id,title,createdAt\r\n1,\"a,b\",1\r\n2,\"say \"\"hi\"\"\",2\r\n3,'=SUM(A1),3\r\n",
-            out.toString(Charsets.UTF_8),
-        )
+        assertEquals(0, repo.exportItemsCsv(out))
+        assertEquals("provider,date,status,qty\r\n", out.toString(Charsets.UTF_8))
     }
 }
