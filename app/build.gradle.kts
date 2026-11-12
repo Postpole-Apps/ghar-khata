@@ -50,11 +50,11 @@ if (signingAnySet && !signingComplete) {
 }
 
 android {
-    namespace = "com.postpole.template"
+    namespace = "com.postpole.gharkhata"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.postpole.template"
+        applicationId = "com.postpole.gharkhata"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

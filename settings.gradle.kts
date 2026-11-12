@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "template-app"
+rootProject.name = "ghar-khata"
 include(":app")
