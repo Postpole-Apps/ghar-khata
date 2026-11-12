@@ -18,6 +18,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.PersonAdd
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,7 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,6 +48,10 @@ import com.postpole.gharkhata.ui.pro.ProSheet
 import com.postpole.gharkhata.ui.theme.GharNumerals
 import com.postpole.gharkhata.ui.theme.GharShapesExtra
 import com.postpole.gharkhata.ui.theme.gharColors
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
 
 /** Providers list: active first, then archived. Rows show this month's per-provider total only. */
 @Composable
@@ -53,8 +61,26 @@ fun ProviderListScreen(
     viewModel: ProviderListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val gk = MaterialTheme.gharColors
     var showPro by remember { mutableStateOf(false) }
+    ProviderListContent(
+        state = state,
+        onOpenProvider = onOpenProvider,
+        onAddProvider = { if (state.canAdd) onAddProvider() else showPro = true },
+        onSeePro = { showPro = true },
+    )
+    if (showPro) ProSheet(onDismiss = { showPro = false })
+}
+
+/** Stateless Providers list (also used by the screenshot tests). */
+@Composable
+internal fun ProviderListContent(
+    state: ProviderListState,
+    onOpenProvider: (Long) -> Unit,
+    onAddProvider: () -> Unit,
+    onSeePro: () -> Unit,
+    today: LocalDate = LocalDate.now(),
+) {
+    val gk = MaterialTheme.gharColors
 
     Column(
         Modifier.fillMaxSize()
@@ -68,7 +94,7 @@ fun ProviderListScreen(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
         )
         if (!state.isPro) {
-            FreeLimitCard(used = state.active.size, onSeePro = { showPro = true })
+            FreeLimitCard(used = state.active.size, onSeePro = onSeePro)
         }
         Column(
             Modifier.padding(top = 16.dp).fillMaxSize().clip(GharShapesExtra.SheetTop)
@@ -83,14 +109,14 @@ fun ProviderListScreen(
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f),
                 )
-                Box(
-                    Modifier.heightIn(min = 48.dp).clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .clickable(role = Role.Button) { if (state.canAdd) onAddProvider() else showPro = true }
-                        .padding(horizontal = 20.dp),
-                    contentAlignment = Alignment.Center,
+                PillButton(
+                    onClick = onAddProvider,
+                    container = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    horizontalPadding = 16.dp,
                 ) {
-                    Text("＋ " + stringResource(R.string.providers_add), style = MaterialTheme.typography.labelLarge)
+                    Icon(Icons.Outlined.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.providers_add), style = MaterialTheme.typography.labelLarge)
                 }
             }
             LazyColumn(
@@ -107,7 +133,7 @@ fun ProviderListScreen(
                     }
                 }
                 items(state.active.size, key = { state.active[it].provider.id }) { i ->
-                    ActiveRow(state.active[i], style = i % 3, onClick = { onOpenProvider(state.active[i].provider.id) })
+                    ActiveRow(state.active[i], style = i % 3, today = today, onClick = { onOpenProvider(state.active[i].provider.id) })
                 }
                 if (state.archived.isNotEmpty()) {
                     item(key = "archived-header") {
@@ -125,7 +151,6 @@ fun ProviderListScreen(
             }
         }
     }
-    if (showPro) ProSheet(onDismiss = { showPro = false })
 }
 
 @Composable
@@ -154,23 +179,23 @@ private fun FreeLimitCard(used: Int, onSeePro: () -> Unit) {
                 }
             }
         }
-        Box(
-            Modifier.heightIn(min = 48.dp).clip(CircleShape).background(gk.lime)
-                .clickable(role = Role.Button, onClick = onSeePro).padding(horizontal = 16.dp),
-            contentAlignment = Alignment.Center,
-        ) {
+        PillButton(onClick = onSeePro, container = gk.lime, horizontalPadding = 20.dp) {
             Text(stringResource(R.string.providers_see_pro), color = gk.onLime, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
 
 @Composable
-private fun ActiveRow(row: ProviderRow, style: Int, onClick: () -> Unit) {
+private fun ActiveRow(row: ProviderRow, style: Int, today: LocalDate, onClick: () -> Unit) {
     val gk = MaterialTheme.gharColors
     val cs = MaterialTheme.colorScheme
     // 0 = lime card, 1 = hero card, 2 = neutral card (as in the mockup); text on lime is always onLime.
     val bg: Modifier = when (style) {
-        0 -> Modifier.background(Brush.linearGradient(listOf(gk.lime, gk.limeDim)))
+        // lime -> limeContainer per the v3 tokens. In dark mode limeContainer is dark olive, which would
+        // sink the always-dark onLime text, so the gradient ends on limeDim there.
+        0 -> Modifier.background(
+            Brush.linearGradient(listOf(gk.lime, if (gk.limeContainer.luminance() > 0.4f) gk.limeContainer else gk.limeDim)),
+        )
         1 -> Modifier.background(gk.hero)
         else -> Modifier.background(cs.surfaceContainerHigh)
     }
@@ -182,19 +207,28 @@ private fun ActiveRow(row: ProviderRow, style: Int, onClick: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(48.dp).clip(CircleShape).background(fg.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-                Text(p.type.glyph(), style = MaterialTheme.typography.titleLarge)
+            val (avatarBg, avatarFg) = when (style) {
+                0 -> gk.onLime to gk.lime
+                1 -> fg.copy(alpha = 0.12f) to fg
+                else -> cs.primaryContainer to cs.onPrimaryContainer
             }
+            ProviderAvatar(p.type, container = avatarBg, content = avatarFg)
             Column(Modifier.weight(1f)) {
                 Text(p.name, style = MaterialTheme.typography.titleMedium, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(subtitle(p, row.rateLabel), style = MaterialTheme.typography.bodySmall, color = fg.copy(alpha = 0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(subtitle(p, rateLabel(row)), style = MaterialTheme.typography.bodySmall, color = fg.copy(alpha = 0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(Money.format(row.monthTotalPaise), style = GharNumerals.S, color = fg)
                 Text(stringResource(R.string.providers_this_month), style = MaterialTheme.typography.bodySmall, color = fg.copy(alpha = 0.8f))
             }
         }
-        Row(Modifier.fillMaxWidth().height(14.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+          Text(
+            monthLabel(today),
+            style = MaterialTheme.typography.labelMedium,
+            color = fg.copy(alpha = 0.8f),
+          )
+          Row(Modifier.weight(1f).height(14.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             row.strip.forEach { day ->
                 val color = when (day) {
                     StripDay.DELIVERED -> delivered
@@ -204,6 +238,7 @@ private fun ActiveRow(row: ProviderRow, style: Int, onClick: () -> Unit) {
                 }
                 Box(Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(50)).background(color))
             }
+          }
         }
     }
 }
@@ -211,16 +246,20 @@ private fun ActiveRow(row: ProviderRow, style: Int, onClick: () -> Unit) {
 @Composable
 private fun subtitle(p: ProviderEntity, rate: String): String {
     val type = stringResource(p.type.labelRes())
-    return "$type · $rate"
+    return stringResource(R.string.providers_subtitle, type, rate, scheduleLabel(p.scheduleMask))
 }
 
-private val ProviderRow.rateLabel: String
-    get() = ratePaise?.let {
-        when (provider.billingMode) {
-            BillingMode.MONTHLY_FIXED -> "${Money.format(it)}/mo"
-            else -> "${Money.format(it)}/${provider.unitLabel}"
-        }
-    } ?: ""
+@Composable
+private fun monthLabel(today: LocalDate): String =
+    today.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()).uppercase(Locale.getDefault())
+
+@Composable
+private fun rateLabel(row: ProviderRow): String = row.ratePaise?.let {
+    when (row.provider.billingMode) {
+        BillingMode.MONTHLY_FIXED -> stringResource(R.string.providers_rate_monthly, Money.format(it))
+        else -> stringResource(R.string.providers_rate_per_unit, Money.format(it), row.provider.unitLabel)
+    }
+} ?: ""
 
 @Composable
 private fun ArchivedRow(p: ProviderEntity, onClick: () -> Unit) {
@@ -230,13 +269,25 @@ private fun ArchivedRow(p: ProviderEntity, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
-            Text(p.type.glyph(), style = MaterialTheme.typography.titleLarge)
-        }
+        ProviderAvatar(
+            p.type,
+            container = MaterialTheme.colorScheme.surfaceContainerHigh,
+            content = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Column(Modifier.weight(1f)) {
             Text(p.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val type = stringResource(p.type.labelRes())
+            val on = p.archivedOnEpochDay
             Text(
-                stringResource(R.string.providers_archived_subtitle, stringResource(p.type.labelRes())),
+                if (on != null) {
+                    stringResource(
+                        R.string.providers_archived_on,
+                        type,
+                        LocalDate.ofEpochDay(on).format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())),
+                    )
+                } else {
+                    stringResource(R.string.providers_archived_subtitle, type)
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

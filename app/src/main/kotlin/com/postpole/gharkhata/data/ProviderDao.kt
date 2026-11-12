@@ -30,7 +30,11 @@ interface ProviderDao {
     @Upsert
     suspend fun upsert(provider: ProviderEntity): Long
 
-    @Query("UPDATE providers SET archived = :archived WHERE id = :id")
+    @Query(
+        "UPDATE providers SET archived = :archived, archivedOnEpochDay = " +
+            "CASE WHEN :archived THEN CAST(strftime('%s', 'now', 'localtime') / 86400 AS INTEGER) ELSE NULL END " +
+            "WHERE id = :id",
+    )
     suspend fun setArchived(id: Long, archived: Boolean)
 
     @Delete

@@ -144,6 +144,7 @@ class BackupRepository @Inject constructor(
         .put("paidLeavesPerMonth", paidLeavesPerMonth)
         .put("startEpochDay", startEpochDay)
         .put("archived", archived)
+        .put("archivedOnEpochDay", archivedOnEpochDay ?: JSONObject.NULL)
         .put("phone", phone ?: JSONObject.NULL)
         .put("note", note ?: JSONObject.NULL)
         .put("sortOrder", sortOrder)
@@ -160,6 +161,7 @@ class BackupRepository @Inject constructor(
         paidLeavesPerMonth = getInt("paidLeavesPerMonth"),
         startEpochDay = getLong("startEpochDay"),
         archived = getBoolean("archived"),
+        archivedOnEpochDay = if (has("archivedOnEpochDay") && !isNull("archivedOnEpochDay")) getLong("archivedOnEpochDay") else null,
         phone = optNullableString("phone"),
         note = optNullableString("note"),
         sortOrder = getInt("sortOrder"),

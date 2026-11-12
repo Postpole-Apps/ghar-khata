@@ -22,6 +22,8 @@ data class ProviderEntity(
     val paidLeavesPerMonth: Int = 0,
     val startEpochDay: Long,
     val archived: Boolean = false,
+    /** Local epoch day the provider was archived; null when active or archived before this was recorded. */
+    val archivedOnEpochDay: Long? = null,
     val phone: String? = null,
     val note: String? = null,
     val sortOrder: Int = 0,

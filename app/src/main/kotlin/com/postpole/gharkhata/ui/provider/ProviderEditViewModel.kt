@@ -81,6 +81,9 @@ class ProviderEditViewModel @Inject constructor(
     private var existing: ProviderEntity? = null
     private var originalRatePaise: Long? = null
 
+    /** The rate (or monthly amount) stored for this provider before any unsaved edit; null for a new provider. */
+    val currentRatePaise: Long? get() = originalRatePaise
+
     /** 1st of the current month: the default for "Effective from". */
     val defaultEffectiveFrom: Long get() = LocalDate.now().withDayOfMonth(1).toEpochDay()
 

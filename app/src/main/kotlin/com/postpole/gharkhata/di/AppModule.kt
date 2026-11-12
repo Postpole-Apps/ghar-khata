@@ -16,6 +16,7 @@ import com.postpole.gharkhata.ui.provider.ProStatus
 import com.postpole.gharkhata.billing.PlayBillingGateway
 import com.postpole.gharkhata.data.AppDatabase
 import com.postpole.gharkhata.data.DayMarkDao
+import com.postpole.gharkhata.data.MIGRATION_1_2
 import com.postpole.gharkhata.data.MonthSettlementDao
 import com.postpole.gharkhata.data.ProviderDao
 import com.postpole.gharkhata.data.RateChangeDao
@@ -36,7 +37,9 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "app.db").build()
+        Room.databaseBuilder(context, AppDatabase::class.java, "app.db")
+            .addMigrations(MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideProviderDao(db: AppDatabase): ProviderDao = db.providerDao()
