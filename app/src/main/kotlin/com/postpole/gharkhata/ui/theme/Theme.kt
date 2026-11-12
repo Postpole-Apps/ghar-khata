@@ -4,7 +4,6 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
@@ -160,19 +159,21 @@ val LocalGharColors = staticCompositionLocalOf { LightGharColors }
 val MaterialTheme.gharColors: GharColors
     @Composable get() = LocalGharColors.current
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 val GharShapes = Shapes(
     extraSmall = RoundedCornerShape(4.dp),
     small = RoundedCornerShape(8.dp),
     medium = RoundedCornerShape(12.dp),
     large = RoundedCornerShape(16.dp),
-    largeIncreased = RoundedCornerShape(20.dp),
     extraLarge = RoundedCornerShape(28.dp),
-    extraLargeIncreased = RoundedCornerShape(32.dp),
 )
 
-/** Component shapes from the design (cards 24, hero block bottom 32, sheets 32 top, pills/buttons full). */
+/**
+ * Component shapes from the design (cards 24, hero block bottom 32, sheets 32 top, pills/buttons full).
+ * largeIncreased / extraLargeIncreased are not public in the pinned material3 version, so they live here.
+ */
 object GharShapesExtra {
+    val LargeIncreased = RoundedCornerShape(20.dp)
+    val ExtraLargeIncreased = RoundedCornerShape(32.dp)
     val Card = RoundedCornerShape(24.dp)
     val HeroBottom = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
     val SheetTop = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)

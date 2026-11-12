@@ -2,6 +2,7 @@ package com.postpole.gharkhata.data
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
@@ -10,7 +11,8 @@ interface RateChangeDao {
     @Query("SELECT * FROM rate_changes WHERE providerId = :providerId ORDER BY effectiveFromEpochDay DESC")
     fun observeFor(providerId: Long): Flow<List<RateChangeEntity>>
 
-    @Insert
+    /** Replaces an existing change on the same effective date (unique per provider + date). */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(rate: RateChangeEntity): Long
 
     @Query(
