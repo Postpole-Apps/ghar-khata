@@ -14,7 +14,10 @@ import com.postpole.gharkhata.billing.BillingGateway
 import com.postpole.gharkhata.billing.BillingRepository
 import com.postpole.gharkhata.billing.PlayBillingGateway
 import com.postpole.gharkhata.data.AppDatabase
-import com.postpole.gharkhata.data.ItemDao
+import com.postpole.gharkhata.data.DayMarkDao
+import com.postpole.gharkhata.data.MonthSettlementDao
+import com.postpole.gharkhata.data.ProviderDao
+import com.postpole.gharkhata.data.RateChangeDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -35,7 +38,16 @@ object AppModule {
         Room.databaseBuilder(context, AppDatabase::class.java, "app.db").build()
 
     @Provides
-    fun provideItemDao(db: AppDatabase): ItemDao = db.itemDao()
+    fun provideProviderDao(db: AppDatabase): ProviderDao = db.providerDao()
+
+    @Provides
+    fun provideRateChangeDao(db: AppDatabase): RateChangeDao = db.rateChangeDao()
+
+    @Provides
+    fun provideDayMarkDao(db: AppDatabase): DayMarkDao = db.dayMarkDao()
+
+    @Provides
+    fun provideMonthSettlementDao(db: AppDatabase): MonthSettlementDao = db.monthSettlementDao()
 
     @Provides
     @Singleton
