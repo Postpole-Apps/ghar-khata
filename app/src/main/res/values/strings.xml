@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Template App</string>
+    <string name="app_name">Ghar Khata</string>
     <string name="nav_home">Home</string>
     <string name="nav_settings">Settings</string>
     <string name="nav_pro">Pro</string>
