@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
-data class ThemeState(val mode: ThemeMode = ThemeMode.SYSTEM, val dynamicColor: Boolean = true)
+data class ThemeState(val mode: ThemeMode = ThemeMode.SYSTEM, val dynamicColor: Boolean = false)
 
 /** Activity-level state: theme for [com.postpole.gharkhata.ui.theme.GharKhataTheme] and screen-view logging. */
 @HiltViewModel
