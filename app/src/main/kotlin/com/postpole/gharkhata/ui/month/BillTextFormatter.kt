@@ -83,6 +83,10 @@ class BillTextFormatter(private val strings: StringSource, private val locale: L
         fun monthLabel(ym: YearMonth, locale: Locale): String =
             ym.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale))
 
+        /** "Oct". */
+        fun monthShort(ym: YearMonth, locale: Locale): String =
+            ym.format(DateTimeFormatter.ofPattern("MMM", locale))
+
         fun monthName(ym: YearMonth, locale: Locale): String =
             ym.format(DateTimeFormatter.ofPattern("MMMM", locale))
 

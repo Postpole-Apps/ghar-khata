@@ -41,7 +41,7 @@ import androidx.navigation.navArgument
 import com.postpole.gharkhata.R
 import com.postpole.gharkhata.ui.month.BillPreviewScreen
 import com.postpole.gharkhata.ui.month.ProviderMonthScreen
-import com.postpole.gharkhata.ui.pro.ProScreen
+import com.postpole.gharkhata.ui.month.YearSummaryScreen
 import com.postpole.gharkhata.ui.provider.NEW_PROVIDER_ID
 import com.postpole.gharkhata.ui.provider.ProviderEditScreen
 import com.postpole.gharkhata.ui.provider.ProviderListScreen
@@ -56,16 +56,17 @@ object Routes {
     const val PROVIDERS = "providers"
     const val PROVIDER_EDIT = "provider/edit/{id}?type={type}"
     const val SETTINGS = "settings"
-    const val PRO = "pro"
 
     const val PROVIDER_MONTH = "provider/{id}/month/{yyyymm}"
     const val BILL = "bill/{id}/{yyyymm}"
+    const val YEAR = "provider/{id}/year/{year}"
 
     fun providerEdit(id: Long) = "provider/edit/$id"
 
     /** Current month when [yearMonth] is omitted. */
     fun providerMonth(id: Long, yearMonth: Int = currentYearMonth()) = "provider/$id/month/$yearMonth"
     fun bill(id: Long, yearMonth: Int) = "bill/$id/$yearMonth"
+    fun year(id: Long, year: Int) = "provider/$id/year/$year"
 
     private fun currentYearMonth() = java.time.LocalDate.now().let { it.year * 100 + it.monthValue }
 
@@ -115,6 +116,7 @@ fun AppNavHost(onScreen: (String) -> Unit = {}) {
                 TodayScreen(
                     onAddProvider = { navController.navigate(Routes.providerEdit(NEW_PROVIDER_ID)) },
                     onPreset = { navController.navigate(Routes.providerNew(it)) },
+                    onOpenBills = { switchTab(Routes.PROVIDERS) },
                 )
             }
             composable(Routes.PROVIDERS) {
@@ -144,6 +146,7 @@ fun AppNavHost(onScreen: (String) -> Unit = {}) {
                     onBack = { navController.popBackStack() },
                     onEditProvider = { navController.navigate(Routes.providerEdit(it)) },
                     onOpenBill = { id, ym -> navController.navigate(Routes.bill(id, ym)) },
+                    onOpenYear = { id, ym -> navController.navigate(Routes.year(id, ym / 100)) },
                 )
             }
             composable(
@@ -155,14 +158,17 @@ fun AppNavHost(onScreen: (String) -> Unit = {}) {
             ) {
                 BillPreviewScreen(onBack = { navController.popBackStack() })
             }
-            composable(Routes.SETTINGS) {
-                SettingsScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenPro = { navController.navigate(Routes.PRO) },
-                )
+            composable(
+                Routes.YEAR,
+                arguments = listOf(
+                    navArgument("id") { type = NavType.LongType },
+                    navArgument("year") { type = NavType.IntType },
+                ),
+            ) {
+                YearSummaryScreen(onBack = { navController.popBackStack() })
             }
-            composable(Routes.PRO) {
-                ProScreen(onBack = { navController.popBackStack() })
+            composable(Routes.SETTINGS) {
+                SettingsScreen(onBack = { navController.popBackStack() })
             }
         }
     }

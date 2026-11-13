@@ -51,11 +51,19 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.postpole.gharkhata.R
+import com.postpole.gharkhata.ui.pro.ProBadge
+import com.postpole.gharkhata.ui.pro.ProReason
+import com.postpole.gharkhata.ui.pro.ProSheet
+import com.postpole.gharkhata.ui.pro.rememberIsPro
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.domain.Money
 import com.postpole.gharkhata.ui.provider.ProviderAvatar
@@ -75,11 +83,14 @@ fun ProviderMonthScreen(
     onBack: () -> Unit,
     onEditProvider: (Long) -> Unit,
     onOpenBill: (providerId: Long, yearMonth: Int) -> Unit,
+    onOpenYear: (providerId: Long, yearMonth: Int) -> Unit,
     viewModel: ProviderMonthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var editDay by remember { mutableStateOf<Long?>(null) }
     var showPaid by remember { mutableStateOf(false) }
+    var showPro by remember { mutableStateOf(false) }
+    val isPro = rememberIsPro()
     ProviderMonthContent(
         state = state,
         onBack = onBack,
@@ -89,7 +100,10 @@ fun ProviderMonthScreen(
         onCellClick = { editDay = it.epochDay },
         onBill = { onOpenBill(viewModel.providerId, state.yearMonth) },
         onMarkPaid = { showPaid = true },
+        onYearSummary = { if (isPro) onOpenYear(viewModel.providerId, state.yearMonth) else showPro = true },
+        isPro = isPro,
     )
+    if (showPro) ProSheet(onDismiss = { showPro = false }, reason = ProReason.YEAR_SUMMARY)
     val provider = state.provider
     editDay?.let { day ->
         if (provider != null) {
@@ -129,6 +143,8 @@ internal fun ProviderMonthContent(
     onCellClick: (DayCell) -> Unit,
     onBill: () -> Unit,
     onMarkPaid: () -> Unit,
+    onYearSummary: () -> Unit = {},
+    isPro: Boolean = true,
 ) {
     val gk = MaterialTheme.gharColors
     val provider = state.provider
@@ -136,7 +152,7 @@ internal fun ProviderMonthContent(
         Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(gk.hero, gk.heroVariant))).statusBarsPadding(),
     ) {
         if (provider == null) {
-            TopBar(null, onBack, onEdit)
+            TopBar(null, null, onBack, onEdit, onYearSummary, isPro)
             if (state.loaded) {
                 Text(
                     stringResource(R.string.month_not_found),
@@ -147,7 +163,7 @@ internal fun ProviderMonthContent(
             return@Column
         }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            TopBar(provider, onBack, onEdit)
+            TopBar(provider, state.ratePaise, onBack, onEdit, onYearSummary, isPro)
             Hero(state)
             Column(
                 Modifier.fillMaxWidth().heightIn(min = 560.dp).clip(GharShapesExtra.SheetTop)
@@ -174,12 +190,20 @@ internal fun ProviderMonthContent(
 }
 
 @Composable
-private fun TopBar(provider: com.postpole.gharkhata.data.ProviderEntity?, onBack: () -> Unit, onEdit: () -> Unit) {
+private fun TopBar(
+    provider: com.postpole.gharkhata.data.ProviderEntity?,
+    ratePaise: Long?,
+    onBack: () -> Unit,
+    onEdit: () -> Unit,
+    onYearSummary: () -> Unit,
+    isPro: Boolean,
+) {
+    var menu by remember { mutableStateOf(false) }
     val gk = MaterialTheme.gharColors
     Row(
         Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.month_back), tint = gk.onHero)
@@ -187,9 +211,9 @@ private fun TopBar(provider: com.postpole.gharkhata.data.ProviderEntity?, onBack
         if (provider != null) {
             ProviderAvatar(provider.type, container = gk.lime, content = gk.onLime, size = 44.dp)
             Column(Modifier.weight(1f)) {
-                Text(provider.name, style = MaterialTheme.typography.titleLarge, color = gk.onHero, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(provider.name, style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp), color = gk.onHero, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    rateSubtitle(provider),
+                    rateSubtitle(provider, ratePaise),
                     style = MaterialTheme.typography.bodyMedium,
                     color = gk.onHeroVariant,
                     maxLines = 1,
@@ -199,19 +223,35 @@ private fun TopBar(provider: com.postpole.gharkhata.data.ProviderEntity?, onBack
             IconButton(onClick = onEdit) {
                 Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.month_edit_provider), tint = gk.onHero)
             }
+            Box {
+                IconButton(onClick = { menu = true }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.month_overflow), tint = gk.onHero)
+                }
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.month_year_summary)) },
+                        trailingIcon = { if (!isPro) ProBadge() },
+                        onClick = { menu = false; onYearSummary() },
+                    )
+                }
+            }
         } else {
             Spacer(Modifier.weight(1f))
         }
     }
 }
 
+/** "Milk · ₹60/L · daily", as in the mockup header. */
 @Composable
-private fun rateSubtitle(p: com.postpole.gharkhata.data.ProviderEntity): String =
-    stringResource(
-        R.string.today_row_subtitle,
-        stringResource(p.type.labelRes()),
-        scheduleLabel(p.scheduleMask),
-    )
+private fun rateSubtitle(p: com.postpole.gharkhata.data.ProviderEntity, ratePaise: Long?): String {
+    val type = stringResource(p.type.labelRes())
+    val schedule = scheduleLabel(p.scheduleMask)
+    val rate = ratePaise?.let {
+        if (p.billingMode == BillingMode.MONTHLY_FIXED) stringResource(R.string.providers_rate_monthly, Money.format(it))
+        else stringResource(R.string.providers_rate_per_unit, Money.format(it), p.unitLabel)
+    } ?: return stringResource(R.string.today_row_subtitle, type, schedule)
+    return stringResource(R.string.providers_subtitle, type, rate, schedule)
+}
 
 @Composable
 private fun Hero(state: MonthState) {
@@ -237,11 +277,14 @@ private fun Hero(state: MonthState) {
             val total = BillTextFormatter.money(bill.totalPaise)
             Text(
                 when {
-                    bill.previousBalancePaise > 0 -> stringResource(R.string.month_breakdown, total, BillTextFormatter.money(bill.previousBalancePaise))
+                    bill.previousBalancePaise > 0 -> stringResource(
+                        R.string.month_breakdown, total, BillTextFormatter.money(bill.previousBalancePaise),
+                        BillTextFormatter.monthShort(state.yearMonthValue.minusMonths(1), locale),
+                    )
                     bill.previousBalancePaise < 0 -> stringResource(R.string.month_breakdown_credit, total, BillTextFormatter.money(-bill.previousBalancePaise))
                     else -> stringResource(R.string.month_breakdown_no_previous, total)
                 },
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 color = gk.onHeroVariant,
             )
         }
@@ -296,7 +339,7 @@ private fun StatCardQty(state: MonthState, modifier: Modifier) {
         modifier.heightIn(min = 104.dp).clip(StatShape).background(gk.onHero.copy(alpha = 0.12f)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(stringResource(R.string.month_total_qty, unit), style = MaterialTheme.typography.labelLarge, color = gk.onHero)
+        Text(stringResource(R.string.month_total_qty, stringResource(state.provider!!.type.labelRes()).lowercase(Locale.getDefault())), style = MaterialTheme.typography.labelLarge, color = gk.onHero)
         Text("${formatQty(state.totalQty)} $unit", style = GharNumerals.M, color = gk.onHero)
         DailyBars(state)
     }
@@ -529,6 +572,7 @@ internal fun BigButton(
     container: Color,
     content: Color,
     modifier: Modifier = Modifier,
+    badge: Boolean = false,
     onClick: () -> Unit,
 ) {
     Row(
@@ -540,5 +584,9 @@ internal fun BigButton(
         Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(8.dp))
         Text(text, style = MaterialTheme.typography.labelLarge, color = content, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (badge) {
+            Spacer(Modifier.width(8.dp))
+            ProBadge()
+        }
     }
 }

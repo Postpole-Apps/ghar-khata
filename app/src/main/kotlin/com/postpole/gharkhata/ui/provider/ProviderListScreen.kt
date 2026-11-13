@@ -49,6 +49,7 @@ import com.postpole.gharkhata.R
 import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.data.ProviderEntity
 import com.postpole.gharkhata.domain.Money
+import com.postpole.gharkhata.ui.pro.ProReason
 import com.postpole.gharkhata.ui.pro.ProSheet
 import com.postpole.gharkhata.ui.theme.GharNumerals
 import com.postpole.gharkhata.ui.theme.GharShapesExtra
@@ -67,15 +68,15 @@ fun ProviderListScreen(
     viewModel: ProviderListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var showPro by remember { mutableStateOf(false) }
+    var showPro by remember { mutableStateOf<ProReason?>(null) }
     ProviderListContent(
         state = state,
         onOpenProvider = onOpenProvider,
-        onAddProvider = { if (state.canAdd) onAddProvider() else showPro = true },
-        onSeePro = { showPro = true },
+        onAddProvider = { if (state.canAdd) onAddProvider() else showPro = ProReason.PROVIDER_LIMIT },
+        onSeePro = { showPro = if (state.canAdd) ProReason.GENERAL else ProReason.PROVIDER_LIMIT },
         onOpenSettings = onOpenSettings,
     )
-    if (showPro) ProSheet(onDismiss = { showPro = false })
+    showPro?.let { ProSheet(onDismiss = { showPro = null }, reason = it) }
 }
 
 /** Stateless Providers list (also used by the screenshot tests). */

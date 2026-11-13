@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Remove
@@ -47,6 +48,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -67,6 +69,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -76,7 +80,9 @@ import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.data.DayStatus
 import com.postpole.gharkhata.data.ProviderEntity
 import com.postpole.gharkhata.data.ProviderType
+import com.postpole.gharkhata.ui.pro.ProReason
 import com.postpole.gharkhata.ui.pro.ProSheet
+import com.postpole.gharkhata.ui.provider.PILL_HEIGHT
 import com.postpole.gharkhata.ui.provider.PillButton
 import com.postpole.gharkhata.ui.provider.ProviderAvatar
 import com.postpole.gharkhata.ui.provider.icon
@@ -99,10 +105,11 @@ private const val MILLIS_PER_DAY = 86_400_000L
 fun TodayScreen(
     onAddProvider: () -> Unit,
     onPreset: (ProviderType) -> Unit,
+    onOpenBills: () -> Unit,
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var showPro by remember { mutableStateOf(false) }
+    var showPro by remember { mutableStateOf<ProReason?>(null) }
     TodayContent(
         state = state,
         onSelectDate = viewModel::selectDate,
@@ -110,11 +117,12 @@ fun TodayScreen(
         onSetQty = viewModel::setQty,
         onReset = viewModel::reset,
         onAddExtra = viewModel::addExtra,
-        onAddProvider = { if (state.canAddProvider) onAddProvider() else showPro = true },
+        onAddProvider = { if (state.canAddProvider) onAddProvider() else showPro = ProReason.PROVIDER_LIMIT },
         onPreset = onPreset,
-        onOpenPro = { showPro = true },
+        onOpenPro = { showPro = ProReason.GENERAL },
+        onOpenBills = onOpenBills,
     )
-    if (showPro) ProSheet(onDismiss = { showPro = false })
+    showPro?.let { ProSheet(onDismiss = { showPro = null }, reason = it) }
 }
 
 /** Stateless Today (also used by the screenshot tests). */
@@ -130,6 +138,7 @@ internal fun TodayContent(
     onAddProvider: () -> Unit,
     onPreset: (ProviderType) -> Unit,
     onOpenPro: () -> Unit,
+    onOpenBills: () -> Unit = {},
 ) {
     val gk = MaterialTheme.gharColors
     var qtyRow by remember { mutableStateOf<TodayRow?>(null) }
@@ -150,7 +159,7 @@ internal fun TodayContent(
             EmptyHero(state)
             PresetSheet(onPreset)
         } else {
-            Hero(state, onSelectDate, onPickDate = { showPicker = true })
+            Hero(state, onSelectDate, onPickDate = { showPicker = true }, onOpenBills = onOpenBills)
             Sheet(state, onCycle, onEditQty = { qtyRow = it }, onAddProvider = onAddProvider)
         }
     }
@@ -260,7 +269,7 @@ private fun dateLabel(epochDay: Long, todayEpochDay: Long): String {
 }
 
 @Composable
-private fun Hero(state: TodayState, onSelectDate: (Long) -> Unit, onPickDate: () -> Unit) {
+private fun Hero(state: TodayState, onSelectDate: (Long) -> Unit, onPickDate: () -> Unit, onOpenBills: () -> Unit) {
     val gk = MaterialTheme.gharColors
     Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         DayStrip(state, onSelectDate)
@@ -283,16 +292,23 @@ private fun Hero(state: TodayState, onSelectDate: (Long) -> Unit, onPickDate: ()
             )
         }
         Row(
-            Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+            Modifier.padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Box(Modifier.size(8.dp).clip(CircleShape).background(gk.saffron))
-            Text(
-                pluralStringResource(R.plurals.today_changes, state.changes, state.changes),
-                style = MaterialTheme.typography.labelLarge,
-                color = gk.onHero,
-            )
+            Row(
+                Modifier.height(PILL_HEIGHT).clip(CircleShape).background(gk.onHero.copy(alpha = 0.10f)).padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(gk.saffron))
+                Text(
+                    pluralStringResource(R.plurals.today_changes, state.changes, state.changes),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = gk.onHero,
+                )
+            }
+            NextBillsChip(state.todayEpochDay, onOpenBills)
         }
         Text(
             stringResource(R.string.today_hint),
@@ -300,6 +316,30 @@ private fun Hero(state: TodayState, onSelectDate: (Long) -> Unit, onPickDate: ()
             color = gk.onHeroVariant,
             modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 20.dp),
         )
+    }
+}
+
+/** Lime "Next bills · 1 Dec" chip: bills close at month end, so the next ones are due on the 1st. Opens Providers. */
+@Composable
+private fun NextBillsChip(todayEpochDay: Long, onClick: () -> Unit) {
+    val gk = MaterialTheme.gharColors
+    val next = LocalDate.ofEpochDay(todayEpochDay).plusMonths(1).withDayOfMonth(1)
+    val date = next.format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()))
+    val desc = stringResource(R.string.today_next_bills_desc, date)
+    // The pill is 32 dp tall; the clickable box around it keeps a 48 dp touch target.
+    Box(
+        Modifier.minimumInteractiveComponentSize().semantics { contentDescription = desc }
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            Modifier.height(PILL_HEIGHT).clip(CircleShape).background(gk.lime).padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(Icons.Outlined.CalendarMonth, contentDescription = null, tint = gk.onLime, modifier = Modifier.size(18.dp))
+            Text(stringResource(R.string.today_next_bills, date), style = MaterialTheme.typography.labelLarge, color = gk.onLime)
+        }
     }
 }
 

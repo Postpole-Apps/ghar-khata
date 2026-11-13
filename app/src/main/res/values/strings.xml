@@ -5,10 +5,6 @@
     <string name="nav_pro">Pro</string>
     <string name="back">Back</string>
     <string name="cancel">Cancel</string>
-    <string name="pro_features_title">Unlock everything</string>
-    <string name="pro_feature_1">Feature one (placeholder)</string>
-    <string name="pro_feature_2">Feature two (placeholder)</string>
-    <string name="pro_feature_3">Feature three (placeholder)</string>
     <string name="pro_buy">Buy Pro — %1$s</string>
     <string name="pro_loading">Loading price…</string>
     <string name="pro_unavailable">Pro isn\'t available right now. Please try again later.</string>
@@ -38,8 +34,7 @@
     <string name="backup_export_json_hint">Saves all your data as a JSON file you choose</string>
     <string name="backup_import_json">Restore from backup file</string>
     <string name="backup_import_json_hint">Replaces everything in the app with the file\'s contents</string>
-    <string name="backup_export_csv">Export attendance as CSV</string>
-    <string name="backup_import_confirm_title">Restore from backup?</string>
+        <string name="backup_import_confirm_title">Restore from backup?</string>
     <string name="backup_import_confirm_message">This replaces all current data in the app with the contents of the selected file. This can\'t be undone.</string>
     <string name="backup_import_confirm_action">Replace data</string>
     <string name="backup_exported_generic">File saved.</string>
@@ -157,8 +152,8 @@
     <string name="today_extra_title">Extra delivery from…</string>
     <string name="today_of_marked">of %1$d marked</string>
     <plurals name="today_changes">
-        <item quantity="one">%1$d change</item>
-        <item quantity="other">%1$d changes</item>
+        <item quantity="one">%1$d change today</item>
+        <item quantity="other">%1$d changes today</item>
     </plurals>
     <string name="today_hint">Present by default. Tap only what changed.</string>
     <string name="today_scheduled_today">%1$d scheduled today</string>
@@ -171,6 +166,7 @@
     <string name="status_present">Present</string>
     <string name="status_delivered">Delivered</string>
     <string name="status_absent">Absent</string>
+    <string name="status_skipped">Skipped</string>
     <string name="status_half">Half day</string>
     <string name="status_extra">Extra</string>
     <string name="today_empty_title">Who serves your home?</string>
@@ -189,7 +185,7 @@
     <string name="month_next">Next month</string>
     <string name="month_total_due_so_far">TOTAL DUE · %1$s SO FAR</string>
     <string name="month_total_due">TOTAL DUE · %1$s</string>
-    <string name="month_breakdown">%1$s this month + %2$s previous balance</string>
+    <string name="month_breakdown">%1$s this month + %2$s previous balance (%3$s)</string>
     <string name="month_breakdown_credit">%1$s this month − %2$s credit from earlier</string>
     <string name="month_breakdown_no_previous">%1$s this month</string>
     <string name="month_days_delivered">Days delivered</string>
@@ -271,4 +267,57 @@
     <string name="billtext_paid_on">Paid on %1$s: %2$s</string>
     <string name="billtext_balance_left">Balance carried forward: %1$s</string>
     <string name="billtext_footer">Made with Ghar Khata</string>
+    <!-- Pro sheet -->
+    <string name="pro_title">Ghar Khata Pro</string>
+    <string name="pro_price_note">one-time · no subscription</string>
+    <string name="pro_reason_provider_limit">You\'ve used all %1$d free providers.</string>
+    <string name="pro_reason_bill_image">Bill as image or PDF is part of Pro.</string>
+    <string name="pro_reason_csv">CSV export is part of Pro.</string>
+    <string name="pro_reason_year_summary">The year summary is part of Pro.</string>
+    <string name="pro_reason_general">Unlock everything below with one payment.</string>
+    <string name="pro_benefit_providers">Unlimited providers</string>
+    <string name="pro_benefit_providers_note">(free: %1$d)</string>
+    <string name="pro_benefit_image">Bill as image or PDF for WhatsApp</string>
+    <string name="pro_benefit_csv">CSV export of attendance and bills</string>
+    <string name="pro_benefit_reminder">Daily \"mark today\" reminder</string>
+    <string name="pro_benefit_year">Year summary for each provider</string>
+    <string name="pro_always_free">Always free: marking, rates, paid leaves, balances and backup.</string>
+    <string name="pro_sheet_close">Close</string>
+    <string name="pro_badge">Pro</string>
+
+    <!-- Day sheet ruler -->
+    <string name="daysheet_ruler">Quantity ruler. Swipe sideways to change.</string>
+
+    <!-- Today: next bills -->
+    <string name="today_next_bills">Next bills · %1$s</string>
+    <string name="today_next_bills_desc">Next bills are due on %1$s. Opens Providers.</string>
+
+    <!-- Bill image / PDF -->
+    <string name="bill_share_image">Image</string>
+    <string name="bill_share_pdf">PDF</string>
+    <string name="bill_share_pro_header">PRO · SHARE AS</string>
+    <string name="bill_card_paid">PAID</string>
+    <string name="bill_card_balance_forward">Balance carried forward</string>
+    <string name="bill_card_for">Bill for %1$s</string>
+    <string name="bill_card_period">%1$s</string>
+    <string name="bill_pdf_title">%1$s bill %2$s</string>
+
+    <!-- Year summary -->
+    <string name="month_overflow">More options</string>
+    <string name="month_year_summary">Year summary</string>
+    <string name="year_title">%1$s · %2$d</string>
+    <string name="year_total_billed">Billed in %1$d</string>
+    <string name="year_total_paid">Paid</string>
+    <string name="year_outstanding">Still due</string>
+    <string name="year_months_header">MONTH BY MONTH</string>
+    <string name="year_prev">Previous year</string>
+    <string name="year_next">Next year</string>
+    <string name="year_days_delivered">%1$d days</string>
+    <string name="year_paid_amount">Paid %1$s</string>
+    <string name="year_no_data">Nothing billed in this year.</string>
+    <string name="year_chart_desc">Bar chart of %1$s\'s monthly bills in %2$d</string>
+
+    <!-- CSV -->
+    <string name="backup_export_csv_pro">Export attendance and bills as CSV</string>
+    <string name="settings_pro_badge">Pro</string>
 </resources>

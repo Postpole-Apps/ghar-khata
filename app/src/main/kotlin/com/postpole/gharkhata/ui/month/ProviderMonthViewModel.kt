@@ -61,6 +61,8 @@ data class MonthState(
     val paidLeavesUsed: Double = 0.0,
     val canGoPrevious: Boolean = false,
     val canGoNext: Boolean = false,
+    /** Rate or salary in force today, for the header subtitle. Null before any rate exists. */
+    val ratePaise: Long? = null,
 ) {
     val yearMonthValue: YearMonth get() = YearMonth.of(yearMonth / 100, yearMonth % 100)
 
@@ -140,6 +142,8 @@ class ProviderMonthViewModel internal constructor(
             paidLeavesUsed = bill.lines.firstOrNull { it.kind == BillLineKind.PAID_LEAVES }?.quantity ?: 0.0,
             canGoPrevious = month > startMonth,
             canGoNext = ym < currentMonth,
+            ratePaise = rates.filter { it.effectiveFromEpochDay <= todayEpochDay }
+                .maxByOrNull { it.effectiveFromEpochDay }?.amountPaise,
         )
     }
 
