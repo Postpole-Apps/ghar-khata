@@ -32,6 +32,16 @@ class MoneyScheduleTest {
         assertEquals(5_000L, Money.fromRupees(50))
     }
 
+    @Test fun parseAcceptsLeadingMinus() {
+        assertEquals(-5_000L, Money.parse("-50"))
+        assertEquals(-5_050L, Money.parse("-₹50.5"))
+        assertEquals(-5_000L, Money.parse("₹-50"))
+        assertEquals(-12_345_600L, Money.parse("-1,23,456"))
+        assertNull(Money.parse("--50"))
+        assertNull(Money.parse("5-0"))
+        assertNull(Money.parse("-"))
+    }
+
     @Test fun scheduleBits() {
         val mon = LocalDate.of(2026, 11, 2).toEpochDay()
         val sun = LocalDate.of(2026, 11, 1).toEpochDay()

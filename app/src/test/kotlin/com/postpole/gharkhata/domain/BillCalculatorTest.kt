@@ -27,7 +27,7 @@ class BillCalculatorTest {
         mask: Int,
         defaultQty: Double = 1.0,
         leaves: Int = 0,
-        start: Long = longAgo,
+        start: Long = day(1),
     ) = ProviderEntity(
         id = 1, name = "P", type = ProviderType.OTHER, billingMode = mode, unitLabel = "u",
         defaultQty = defaultQty, scheduleMask = mask, paidLeavesPerMonth = leaves,
@@ -235,5 +235,42 @@ class BillCalculatorTest {
         assertEquals(190_000L, bill.duePaise)
         assertEquals(1_900L, bill.dueDisplayRupees)
         assertTrue(bill.lines.any { it.kind == BillLineKind.PREVIOUS_BALANCE && it.amountPaise == 40_000L })
+    }
+
+    // Overpayment is a credit: Oct billed 100000, paid 130000 → -30000 carried.
+    @Test fun previousBalance_overpaymentIsCredit() {
+        val s = listOf(MonthSettlementEntity(1, 202610, 100_000, 130_000, 0))
+        val bill = compute(provider(BillingMode.PER_UNIT, Schedule.ALL_DAYS), listOf(rate(longAgo, 5000)), settlements = s)
+        assertEquals(-30_000L, bill.previousBalancePaise)
+        assertEquals(120_000L, bill.duePaise)
+    }
+
+    // No settlement rows: every earlier month since the provider start is unpaid and carried.
+    // Start 1 Sep, ₹50/day, all days: Sep 30 d + Oct 31 d = 61 × 5000 = 305000.
+    @Test fun previousBalance_unsettledMonthsCarry() {
+        val p = provider(BillingMode.PER_UNIT, Schedule.ALL_DAYS, start = day(1, 9))
+        val bill = compute(p, listOf(rate(day(1, 9), 5000)))
+        assertEquals(305_000L, bill.previousBalancePaise)
+        assertEquals(455_000L, bill.duePaise)
+    }
+
+    // A settlement resets the carry (its billed snapshot already holds earlier months).
+    @Test fun previousBalance_settlementResetsCarry() {
+        val p = provider(BillingMode.PER_UNIT, Schedule.ALL_DAYS, start = day(1, 9))
+        val s = listOf(MonthSettlementEntity(1, 202609, 150_000, 100_000, 0))
+        val bill = compute(p, listOf(rate(day(1, 9), 5000)), settlements = s)
+        // Sep short 50000 + unsettled Oct 31 × 5000 = 155000.
+        assertEquals(205_000L, bill.previousBalancePaise)
+    }
+
+    // Rounding once on the total: 3 segments of 0.5 paise each. Per-segment HALF_UP would give 3, the exact
+    // total 1.5 rounds to 2; the lines must still add up to the total.
+    @Test fun roundsOnceOnTheTotal() {
+        val p = provider(BillingMode.PER_UNIT, Schedule.ALL_DAYS, defaultQty = 0.5)
+        val rates = listOf(rate(longAgo, 1), rate(day(2), 3), rate(day(3), 1))
+        val bill = compute(p, rates, today = day(3))
+        // 0.5×1 + 0.5×3 + 0.5×1 = 2.5 → 3 (once), not 1+2+1 = 4 or 1+2+1.
+        assertEquals(3L, bill.totalPaise)
+        assertEquals(bill.totalPaise, bill.lines.filter { it.kind == BillLineKind.RATE_SEGMENT }.sumOf { it.amountPaise })
     }
 }

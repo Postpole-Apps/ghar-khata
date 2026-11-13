@@ -14,6 +14,8 @@ object AnalyticsEvents {
     const val PROVIDER_ADDED = "provider_added"
     const val PROVIDER_LIMIT_REACHED = "provider_limit_reached"
     const val DAY_MARKED = "day_marked"
+    const val BILL_SHARED = "bill_shared"
+    const val SETTLEMENT_SAVED = "settlement_saved"
 }
 
 object AnalyticsParams {
