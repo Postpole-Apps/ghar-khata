@@ -39,29 +39,33 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.postpole.gharkhata.R
-import com.postpole.gharkhata.ui.home.HomeScreen
 import com.postpole.gharkhata.ui.pro.ProScreen
 import com.postpole.gharkhata.ui.provider.NEW_PROVIDER_ID
 import com.postpole.gharkhata.ui.provider.ProviderEditScreen
 import com.postpole.gharkhata.ui.provider.ProviderListScreen
 import com.postpole.gharkhata.ui.settings.SettingsScreen
+import com.postpole.gharkhata.ui.today.TodayScreen
+import com.postpole.gharkhata.data.ProviderType
 import com.postpole.gharkhata.ui.theme.gharColors
 
 object Routes {
-    /** Today tab (placeholder until the Today screen lands). */
-    const val HOME = "home"
+    /** Today: the start destination. */
+    const val TODAY = "today"
     const val PROVIDERS = "providers"
-    const val PROVIDER_EDIT = "provider/edit/{id}"
+    const val PROVIDER_EDIT = "provider/edit/{id}?type={type}"
     const val SETTINGS = "settings"
     const val PRO = "pro"
 
     fun providerEdit(id: Long) = "provider/edit/$id"
+
+    /** New provider pre-filled with the preset for [type]. */
+    fun providerNew(type: ProviderType) = "provider/edit/$NEW_PROVIDER_ID?type=${type.name}"
 }
 
 private data class Tab(val route: String, val icon: ImageVector, val label: Int)
 
 private val TABS = listOf(
-    Tab(Routes.HOME, Icons.Filled.DateRange, R.string.nav_today),
+    Tab(Routes.TODAY, Icons.Filled.DateRange, R.string.nav_today),
     Tab(Routes.PROVIDERS, Icons.Filled.Person, R.string.nav_providers),
     Tab(Routes.SETTINGS, Icons.Filled.Settings, R.string.nav_settings),
 )
@@ -81,7 +85,7 @@ fun AppNavHost(onScreen: (String) -> Unit = {}) {
 
     fun switchTab(target: String) {
         navController.navigate(target) {
-            popUpTo(Routes.HOME) { saveState = true }
+            popUpTo(Routes.TODAY) { saveState = true }
             launchSingleTop = true
             restoreState = true
         }
@@ -93,24 +97,28 @@ fun AppNavHost(onScreen: (String) -> Unit = {}) {
     ) { padding ->
         NavHost(
             navController = navController,
-            startDestination = Routes.HOME,
+            startDestination = Routes.TODAY,
             modifier = Modifier.padding(bottom = padding.calculateBottomPadding()),
         ) {
-            composable(Routes.HOME) {
-                HomeScreen(
-                    onOpenSettings = { switchTab(Routes.SETTINGS) },
-                    onOpenPro = { navController.navigate(Routes.PRO) },
+            composable(Routes.TODAY) {
+                TodayScreen(
+                    onAddProvider = { navController.navigate(Routes.providerEdit(NEW_PROVIDER_ID)) },
+                    onPreset = { navController.navigate(Routes.providerNew(it)) },
                 )
             }
             composable(Routes.PROVIDERS) {
                 ProviderListScreen(
                     onOpenProvider = { navController.navigate(Routes.providerEdit(it)) },
                     onAddProvider = { navController.navigate(Routes.providerEdit(NEW_PROVIDER_ID)) },
+                    onOpenSettings = { switchTab(Routes.SETTINGS) },
                 )
             }
             composable(
                 Routes.PROVIDER_EDIT,
-                arguments = listOf(navArgument("id") { type = NavType.LongType }),
+                arguments = listOf(
+                    navArgument("id") { type = NavType.LongType },
+                    navArgument("type") { type = NavType.StringType; nullable = true; defaultValue = null },
+                ),
             ) {
                 ProviderEditScreen(onBack = { navController.popBackStack() })
             }
