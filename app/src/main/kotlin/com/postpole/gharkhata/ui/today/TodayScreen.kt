@@ -34,7 +34,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Remove
-import androidx.compose.material.icons.outlined.WorkspacePremium
+import com.postpole.gharkhata.ui.pro.CrownIcon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -214,7 +214,7 @@ internal fun TodayContent(
                                 content = MaterialTheme.colorScheme.onPrimaryContainer,
                                 size = 40.dp,
                             )
-                            Text(p.name, style = MaterialTheme.typography.titleMedium)
+                            Text(p.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                         }
                     }
                 }
@@ -244,7 +244,7 @@ private fun TopRow(canAddExtra: Boolean, onOpenPro: () -> Unit, onAddExtra: () -
             modifier = Modifier.weight(1f),
         )
         IconButton(onClick = onOpenPro) {
-            Icon(Icons.Outlined.WorkspacePremium, contentDescription = stringResource(R.string.nav_pro), tint = gk.saffron)
+            Icon(CrownIcon, contentDescription = stringResource(R.string.nav_pro), tint = gk.saffron)
         }
         Box {
             IconButton(onClick = { menu = true }) {
@@ -529,7 +529,7 @@ private fun QtyDialog(row: TodayRow, onDismiss: () -> Unit, onSave: (Double, Str
     val value = qty.toDoubleOrNull()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(row.provider.name) },
+        title = { Text(row.provider.name, maxLines = 2, overflow = TextOverflow.Ellipsis) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(

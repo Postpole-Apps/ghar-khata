@@ -51,12 +51,44 @@ import com.postpole.gharkhata.data.ThemeMode
 import com.postpole.gharkhata.ui.pro.ProBadge
 import com.postpole.gharkhata.ui.pro.ProReason
 import com.postpole.gharkhata.ui.pro.ProSheet
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.ColorLens
+import androidx.compose.material.icons.outlined.CurrencyRupee
+import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Mail
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.PrivacyTip
+import androidx.compose.material.icons.outlined.Restore
+import androidx.compose.material.icons.outlined.TableChart
+import androidx.compose.material.icons.outlined.Translate
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import com.postpole.gharkhata.ui.pro.CrownIcon
+import com.postpole.gharkhata.ui.provider.BadgeShape
+import com.postpole.gharkhata.ui.theme.GharShapesExtra
+import com.postpole.gharkhata.ui.theme.gharColors
 import java.util.Currency
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
@@ -113,141 +145,41 @@ fun SettingsScreen(
         viewModel.events.collect { snackbarHostState.showSnackbar(messages(it)) }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.nav_settings)) },
-                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.back)) } },
-            )
-        },
-    ) { padding ->
-        Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            SectionHeader(R.string.settings_section_appearance)
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_theme)) },
-                supportingContent = { Text(stringResource(themeMode.label())) },
-                modifier = Modifier.clickable { showTheme = true },
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_dynamic_color)) },
-                supportingContent = {
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-                        Text(stringResource(R.string.settings_dynamic_color_unsupported))
-                    }
-                },
-                trailingContent = {
-                    Switch(
-                        checked = dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
-                        onCheckedChange = viewModel::setDynamicColor,
-                        enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
-                    )
-                },
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_currency)) },
-                supportingContent = { Text(currency?.let(::currencyLabel) ?: "") },
-                modifier = Modifier.clickable { showCurrency = true },
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_language)) },
-                supportingContent = {
-                    Text(
-                        stringResource(
-                            R.string.settings_language_value,
-                            java.util.Locale.getDefault().getDisplayLanguage(java.util.Locale.getDefault()),
-                        ),
-                    )
-                },
-            )
-            HorizontalDivider()
-
-            SectionHeader(R.string.settings_section_reminder)
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_reminder)) },
-                supportingContent = {
-                    Text(
-                        reminderMinutes?.let { formatTime(context, it) }
-                            ?: stringResource(R.string.settings_reminder_off),
-                    )
-                },
-                trailingContent = {
-                    if (!isPro) {
-                        ProBadge()
-                    } else if (reminderMinutes != null) {
-                        TextButton(onClick = viewModel::clearReminder) { Text(stringResource(R.string.settings_reminder_turn_off)) }
-                    }
-                },
-                modifier = Modifier.clickable {
-                    if (isPro) showReminderPicker = true else showPro = "reminder"
-                },
-            )
-            HorizontalDivider()
-
-            SectionHeader(R.string.settings_section_data)
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.backup_export_json)) },
-                supportingContent = { Text(stringResource(R.string.backup_export_json_hint)) },
-                modifier = Modifier.clickable { exportJson.launch(backupFileName("json")) },
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.backup_import_json)) },
-                supportingContent = { Text(stringResource(R.string.backup_import_json_hint)) },
-                modifier = Modifier.clickable { pickImport.launch(arrayOf("application/json", "text/plain", "*/*")) },
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.backup_export_csv_pro)) },
-                trailingContent = { if (!isPro) ProBadge() },
-                modifier = Modifier.clickable {
-                    if (isPro) exportCsv.launch(backupFileName("csv")) else showPro = "csv"
-                },
-            )
-            HorizontalDivider()
-
-            SectionHeader(R.string.settings_section_pro)
-            if (isPro) {
-                ListItem(headlineContent = { Text(stringResource(R.string.pro_active)) })
-            } else {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.upgrade_to_pro)) },
-                    modifier = Modifier.clickable { showPro = "general" },
+    Box(Modifier.fillMaxSize()) {
+        SettingsContent(
+            isPro = isPro,
+            themeMode = themeMode,
+            dynamicColor = dynamicColor,
+            currency = currency,
+            reminderMinutes = reminderMinutes,
+            onUpgrade = { showPro = "general" },
+            onRestorePurchases = viewModel::restore,
+            onBackup = { exportJson.launch(backupFileName("json")) },
+            onRestoreBackup = { pickImport.launch(arrayOf("application/json", "text/plain", "*/*")) },
+            onExportCsv = { if (isPro) exportCsv.launch(backupFileName("csv")) else showPro = "csv" },
+            onReminder = { if (isPro) showReminderPicker = true else showPro = "reminder" },
+            onTurnOffReminder = viewModel::clearReminder,
+            onTheme = { showTheme = true },
+            onDynamicColor = viewModel::setDynamicColor,
+            onCurrency = { showCurrency = true },
+            onPrivacy = {
+                context.openLink(Intent(Intent.ACTION_VIEW, Uri.parse(context.getString(R.string.privacy_policy_url))))
+            },
+            onFeedback = {
+                val email = context.getString(R.string.support_email)
+                context.openLink(
+                    Intent(Intent.ACTION_SENDTO).apply {
+                        data = Uri.parse("mailto:")
+                        putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
+                        putExtra(
+                            Intent.EXTRA_SUBJECT,
+                            context.getString(R.string.settings_feedback_subject, context.getString(R.string.app_name)),
+                        )
+                    },
                 )
-            }
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.pro_restore)) },
-                modifier = Modifier.clickable(onClick = viewModel::restore),
-            )
-            HorizontalDivider()
-
-            SectionHeader(R.string.settings_section_about)
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_version)) },
-                supportingContent = { Text(BuildConfig.VERSION_NAME) },
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_privacy_policy)) },
-                modifier = Modifier.clickable {
-                    context.openLink(Intent(Intent.ACTION_VIEW, Uri.parse(context.getString(R.string.privacy_policy_url))))
-                },
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_feedback)) },
-                supportingContent = { Text(stringResource(R.string.support_email)) },
-                modifier = Modifier.clickable {
-                    val email = context.getString(R.string.support_email)
-                    context.openLink(
-                        Intent(Intent.ACTION_SENDTO).apply {
-                            data = Uri.parse("mailto:")
-                            putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
-                            putExtra(
-                                Intent.EXTRA_SUBJECT,
-                                context.getString(R.string.settings_feedback_subject, context.getString(R.string.app_name)),
-                            )
-                        },
-                    )
-                },
-            )
-        }
+            },
+        )
+        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
 
     showPro?.let { why ->
@@ -353,13 +285,180 @@ fun SettingsScreen(
     }
 }
 
+/** Stateless Settings (also used by the screenshot tests): hero Pro card on top, grouped sections below. */
+@Composable
+internal fun SettingsContent(
+    isPro: Boolean,
+    themeMode: ThemeMode,
+    dynamicColor: Boolean,
+    currency: String?,
+    reminderMinutes: Int?,
+    onUpgrade: () -> Unit = {},
+    onRestorePurchases: () -> Unit = {},
+    onBackup: () -> Unit = {},
+    onRestoreBackup: () -> Unit = {},
+    onExportCsv: () -> Unit = {},
+    onReminder: () -> Unit = {},
+    onTurnOffReminder: () -> Unit = {},
+    onTheme: () -> Unit = {},
+    onDynamicColor: (Boolean) -> Unit = {},
+    onCurrency: () -> Unit = {},
+    onPrivacy: () -> Unit = {},
+    onFeedback: () -> Unit = {},
+) {
+    val gk = MaterialTheme.gharColors
+    val context = LocalContext.current
+    val dynamicSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    Column(
+        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(gk.hero, gk.heroVariant))).statusBarsPadding(),
+    ) {
+        Text(
+            stringResource(R.string.nav_settings),
+            style = MaterialTheme.typography.headlineMedium,
+            color = gk.onHero,
+            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 8.dp),
+        )
+        ProHeroCard(isPro = isPro, onClick = onUpgrade)
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+            TextButton(onClick = onRestorePurchases, modifier = Modifier.padding(end = 12.dp)) {
+                Text(stringResource(R.string.pro_restore), style = MaterialTheme.typography.titleMedium, color = gk.lime)
+            }
+        }
+        Column(
+            Modifier.fillMaxWidth().weight(1f).clip(GharShapesExtra.SheetTop)
+                .background(MaterialTheme.colorScheme.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            SectionHeader(R.string.settings_section_data)
+            SettingsGroup {
+                SettingsRow(Icons.Outlined.FileUpload, stringResource(R.string.backup_export_json), stringResource(R.string.backup_export_json_hint), onClick = onBackup)
+                SettingsRow(Icons.Outlined.Restore, stringResource(R.string.backup_import_json), stringResource(R.string.backup_import_json_hint), onClick = onRestoreBackup)
+                SettingsRow(
+                    Icons.Outlined.TableChart, stringResource(R.string.backup_export_csv_pro), stringResource(R.string.backup_export_csv_hint),
+                    trailing = { if (!isPro) ProBadge() }, onClick = onExportCsv,
+                )
+            }
+
+            SectionHeader(R.string.settings_section_reminder)
+            SettingsGroup {
+                SettingsRow(
+                    Icons.Outlined.Notifications, stringResource(R.string.settings_reminder),
+                    reminderMinutes?.let { formatTime(context, it) } ?: stringResource(R.string.settings_reminder_off),
+                    trailing = {
+                        if (!isPro) {
+                            ProBadge()
+                        } else if (reminderMinutes != null) {
+                            TextButton(onClick = onTurnOffReminder) { Text(stringResource(R.string.settings_reminder_turn_off)) }
+                        }
+                    },
+                    onClick = onReminder,
+                )
+                SettingsRow(
+                    Icons.Outlined.Translate, stringResource(R.string.settings_language),
+                    stringResource(R.string.settings_language_value, java.util.Locale.getDefault().getDisplayLanguage(java.util.Locale.getDefault())),
+                )
+            }
+
+            SectionHeader(R.string.settings_section_appearance)
+            SettingsGroup {
+                SettingsRow(Icons.Outlined.Palette, stringResource(R.string.settings_theme), stringResource(themeMode.label()), onClick = onTheme)
+                SettingsRow(
+                    Icons.Outlined.ColorLens, stringResource(R.string.settings_dynamic_color),
+                    if (dynamicSupported) null else stringResource(R.string.settings_dynamic_color_unsupported),
+                    trailing = {
+                        Switch(checked = dynamicColor && dynamicSupported, onCheckedChange = onDynamicColor, enabled = dynamicSupported)
+                    },
+                )
+                SettingsRow(Icons.Outlined.CurrencyRupee, stringResource(R.string.settings_currency), currency?.let(::currencyLabel).orEmpty(), onClick = onCurrency)
+            }
+
+            SectionHeader(R.string.settings_section_about)
+            SettingsGroup {
+                SettingsRow(Icons.Outlined.Info, stringResource(R.string.settings_version), BuildConfig.VERSION_NAME)
+                SettingsRow(Icons.Outlined.PrivacyTip, stringResource(R.string.settings_privacy_policy), null, onClick = onPrivacy)
+                SettingsRow(Icons.Outlined.Mail, stringResource(R.string.settings_feedback), stringResource(R.string.support_email), onClick = onFeedback)
+            }
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+/** Upgrade to Pro hero card; shows the active state (not clickable) once Pro is owned. */
+@Composable
+private fun ProHeroCard(isPro: Boolean, onClick: () -> Unit) {
+    val gk = MaterialTheme.gharColors
+    Row(
+        Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(GharShapesExtra.Card)
+            .background(gk.onHero.copy(alpha = 0.10f))
+            .then(if (isPro) Modifier else Modifier.clickable(role = Role.Button, onClick = onClick))
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Box(Modifier.size(56.dp).clip(BadgeShape).background(gk.lime), contentAlignment = Alignment.Center) {
+            Icon(CrownIcon, contentDescription = null, tint = gk.onLime, modifier = Modifier.size(28.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(if (isPro) R.string.pro_active else R.string.upgrade_to_pro),
+                style = MaterialTheme.typography.titleLarge, color = gk.onHero,
+            )
+            Text(
+                stringResource(if (isPro) R.string.settings_pro_active_subtitle else R.string.settings_pro_hero_subtitle),
+                style = MaterialTheme.typography.bodyMedium, color = gk.onHeroVariant,
+            )
+        }
+        if (!isPro) Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = gk.onHero)
+    }
+}
+
+/** Rounded card group: the rows inside share the outer corners and are separated by a thin gap. */
+@Composable
+private fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().clip(GharShapesExtra.Card),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        content = content,
+    )
+}
+
+@Composable
+private fun SettingsRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String?,
+    trailing: (@Composable () -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    val cs = MaterialTheme.colorScheme
+    Row(
+        Modifier.fillMaxWidth().background(cs.surfaceContainerHigh)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+            .heightIn(min = 64.dp).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(cs.surfaceContainerHighest), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = cs.onSurface, modifier = Modifier.size(24.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = cs.onSurface)
+            if (!subtitle.isNullOrEmpty()) {
+                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
+            }
+        }
+        trailing?.invoke()
+    }
+}
+
 @Composable
 private fun SectionHeader(titleRes: Int) {
     Text(
-        stringResource(titleRes),
+        stringResource(titleRes).uppercase(java.util.Locale.getDefault()),
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 4.dp),
+        modifier = Modifier.padding(start = 8.dp, top = 16.dp, end = 8.dp, bottom = 8.dp),
     )
 }
 

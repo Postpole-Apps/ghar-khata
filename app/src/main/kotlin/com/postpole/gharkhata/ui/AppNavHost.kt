@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,7 +84,7 @@ private val TABS = listOf(
 )
 
 @Composable
-fun AppNavHost(onScreen: (String) -> Unit = {}) {
+fun AppNavHost(onScreen: (String) -> Unit = {}, goToToday: Int = 0) {
     val navController = rememberNavController()
     DisposableEffect(navController) {
         val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
@@ -100,6 +101,16 @@ fun AppNavHost(onScreen: (String) -> Unit = {}) {
             popUpTo(Routes.TODAY) { saveState = true }
             launchSingleTop = true
             restoreState = true
+        }
+    }
+
+    // A reminder tap on a warm start: back to Today from wherever the user was.
+    LaunchedEffect(goToToday) {
+        if (goToToday > 0) {
+            navController.navigate(Routes.TODAY) {
+                popUpTo(Routes.TODAY) { inclusive = false }
+                launchSingleTop = true
+            }
         }
     }
 
@@ -168,7 +179,7 @@ fun AppNavHost(onScreen: (String) -> Unit = {}) {
                 YearSummaryScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.SETTINGS) {
-                SettingsScreen(onBack = { navController.popBackStack() })
+                SettingsScreen()
             }
         }
     }

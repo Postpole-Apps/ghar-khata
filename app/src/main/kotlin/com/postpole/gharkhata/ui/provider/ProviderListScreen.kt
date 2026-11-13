@@ -310,7 +310,10 @@ private fun ArchivedRow(p: ProviderEntity, onClick: () -> Unit) {
             content = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Column(Modifier.weight(1f)) {
-            Text(p.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                p.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
             val type = stringResource(p.type.labelRes())
             val on = p.archivedOnEpochDay
             Text(

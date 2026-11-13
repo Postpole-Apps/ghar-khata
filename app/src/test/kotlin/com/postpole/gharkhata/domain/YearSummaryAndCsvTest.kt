@@ -60,18 +60,35 @@ class YearSummaryAndCsvTest {
         assertEquals(AttendanceCsv.HEADER, lines.first())
         val attendance = lines.filter { it.startsWith("attendance,") }
         assertEquals(66, attendance.size) // 1 Oct .. 5 Dec 2026
-        assertTrue(attendance.contains("attendance,Raju,2026-12,2026-12-02,absent,,,,,,,\"away, \"\"trip\"\"\""))
-        assertTrue(attendance.contains("attendance,Raju,2026-12,2026-12-03,present,1.5,,,,,,"))
-        assertTrue(attendance.contains("attendance,Raju,2026-10,2026-10-01,present,1,,,,,,"))
+        assertTrue(attendance.contains("attendance,Raju,2026-12,2026-12-02,absent,,50.00,,,,,,,\"away, \"\"trip\"\"\""))
+        assertTrue(attendance.contains("attendance,Raju,2026-12,2026-12-03,present,1.5,50.00,75.00,,,,,,"))
+        assertTrue(attendance.contains("attendance,Raju,2026-10,2026-10-01,present,1,50.00,50.00,,,,,,"))
         val bills = lines.filter { it.startsWith("bill,") }
         assertEquals(
             listOf(
-                "bill,Raju,2026-10,,,,1550.00,0.00,1550.00,1500.00,2026-11-02,cash",
-                "bill,Raju,2026-11,,,,1500.00,50.00,1550.00,,,",
-                "bill,Raju,2026-12,,,,225.00,1550.00,1775.00,,,",
+                "bill,Raju,2026-10,,,,,,1550.00,0.00,1550.00,1500.00,2026-11-02,cash",
+                "bill,Raju,2026-11,,,,,,1500.00,50.00,1550.00,,,",
+                "bill,Raju,2026-12,,,,,,225.00,1550.00,1775.00,,,",
             ),
             bills,
         )
+    }
+
+    @Test fun csv_attendanceRateAndAmountByBillingMode() {
+        val maid = ProviderEntity(
+            id = 2, name = "Sunita", type = ProviderType.MAID, billingMode = BillingMode.MONTHLY_FIXED, unitLabel = "day",
+            scheduleMask = Schedule.ALL_DAYS, startEpochDay = day(2026, 12, 1), createdAt = 0,
+        )
+        val visit = maid.copy(id = 3, name = "Cook", billingMode = BillingMode.PER_VISIT)
+        val allRates = listOf(
+            RateChangeEntity(providerId = 2, effectiveFromEpochDay = day(2026, 12, 1), amountPaise = 310_000),
+            RateChangeEntity(providerId = 3, effectiveFromEpochDay = day(2026, 12, 1), amountPaise = 4_000),
+        )
+        val marks = listOf(DayMarkEntity(3, day(2026, 12, 2), DayStatus.HALF, updatedAt = 0))
+        val lines = AttendanceCsv.build(listOf(maid, visit), allRates, marks, emptyList(), today).split("\r\n")
+        assertTrue(lines.contains("attendance,Sunita,2026-12,2026-12-01,present,1,3100.00,100.00,,,,,,"))
+        assertTrue(lines.contains("attendance,Cook,2026-12,2026-12-01,present,1,40.00,40.00,,,,,,"))
+        assertTrue(lines.contains("attendance,Cook,2026-12,2026-12-02,half,0.5,40.00,20.00,,,,,,"))
     }
 
     @Test fun csv_escapesFormulaAndQuotes() {

@@ -1,7 +1,15 @@
 package com.postpole.gharkhata.ui.pro
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,10 +36,12 @@ fun rememberIsPro(viewModel: ProViewModel = hiltViewModel()): Boolean =
 @Composable
 fun ProBadge(modifier: Modifier = Modifier) {
     val gk = MaterialTheme.gharColors
-    Text(
-        stringResource(R.string.pro_badge),
-        style = MaterialTheme.typography.labelMedium,
-        color = gk.onSaffronContainer,
-        modifier = modifier.clip(CircleShape).background(gk.saffronContainer).padding(horizontal = 8.dp, vertical = 2.dp),
-    )
+    Row(
+        modifier.clip(CircleShape).background(gk.saffronContainer).padding(horizontal = 10.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Outlined.Lock, contentDescription = null, tint = gk.onSaffronContainer, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(4.dp))
+        Text(stringResource(R.string.pro_badge), style = MaterialTheme.typography.labelLarge, color = gk.onSaffronContainer)
+    }
 }

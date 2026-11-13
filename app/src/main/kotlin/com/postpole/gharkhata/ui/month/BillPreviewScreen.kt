@@ -36,6 +36,9 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -490,8 +493,15 @@ internal fun MarkPaidDialog(
         
     }
     val confirm: @Composable () -> Unit = {
-        TextButton(enabled = paise != null, onClick = { onSave(paise ?: return@TextButton, paidOn, note) }) {
-            Text(stringResource(R.string.provider_save))
+        Button(
+            enabled = paise != null,
+            onClick = { onSave(paise ?: return@Button, paidOn, note) },
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(containerColor = gk.hero, contentColor = gk.lime),
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            modifier = Modifier.heightIn(min = 48.dp),
+        ) {
+            Text(stringResource(R.string.provider_save), style = MaterialTheme.typography.labelLarge)
         }
     }
     val dismiss: @Composable () -> Unit = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
