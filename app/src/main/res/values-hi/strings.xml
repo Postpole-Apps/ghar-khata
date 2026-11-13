@@ -319,13 +319,16 @@
     <string name="year_chart_desc">%2$d में %1$s के मासिक बिलों का बार चार्ट</string>
 
     <!-- CSV -->
+    <string name="backup_export_csv_hint">हाज़िरी और बिल, Excel या Sheets के लिए</string>
+    <string name="settings_pro_hero_subtitle">एक बार का भुगतान · असीमित प्रोवाइडर, बिल इमेज या PDF, CSV</string>
+    <string name="settings_pro_active_subtitle">धन्यवाद! सब कुछ खुला है।</string>
     <string name="backup_export_csv_pro">हाज़िरी और बिल CSV में एक्सपोर्ट करें</string>
     <string name="settings_pro_badge">Pro</string>
 
     <!-- Reminder and language -->
-    <string name="settings_section_reminder">रिमाइंडर</string>
+    <string name="settings_section_reminder">रिमाइंडर और भाषा</string>
     <string name="settings_reminder">रोज़ रिमाइंडर का समय</string>
-    <string name="settings_reminder_off">बंद</string>
+    <string name="settings_reminder_off">बंद · आज की हाज़िरी भरने की याद दिलाता है</string>
     <string name="settings_reminder_turn_off">बंद करें</string>
     <string name="settings_reminder_save">तय करें</string>
     <string name="settings_language">भाषा</string>

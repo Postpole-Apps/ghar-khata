@@ -50,6 +50,9 @@ class BillingRepository(
         .map { it[IS_PRO] ?: false }
         .stateIn(scope, SharingStarted.Eagerly, false)
 
+    /** Reads the persisted entitlement directly, so callers at startup never see [isPro]'s initial `false`. */
+    suspend fun isProStored(): Boolean = dataStore.data.first()[IS_PRO] ?: false
+
     private val _price = MutableStateFlow<String?>(null)
 
     /** Localized price from ProductDetails, null until loaded. */

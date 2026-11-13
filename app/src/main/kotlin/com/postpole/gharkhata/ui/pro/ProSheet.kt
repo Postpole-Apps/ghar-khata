@@ -26,7 +26,6 @@ import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.TableChart
 import androidx.compose.material.icons.outlined.VerifiedUser
-import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -150,7 +149,7 @@ internal fun ProSheetContent(
             Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Box(Modifier.size(72.dp).clip(BadgeShape).background(gk.lime), contentAlignment = Alignment.Center) {
                     Box(Modifier.size(52.dp).clip(CircleShape).background(gk.hero), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Outlined.WorkspacePremium, contentDescription = null, tint = gk.saffron, modifier = Modifier.size(32.dp))
+                        Icon(CrownIcon, contentDescription = null, tint = gk.saffron, modifier = Modifier.size(32.dp))
                     }
                 }
                 Column(Modifier.weight(1f)) {

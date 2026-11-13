@@ -65,6 +65,26 @@ class ReminderControllerTest {
     }
 
     @Test
+    fun reconcile_cancelsWhenProLost_andKeepsStoredTime() = runBlocking {
+        pro = true
+        controller().enable(600)
+        scheduler.cancelled = 0
+        pro = false
+        controller().reconcile()
+        assertEquals(1, scheduler.cancelled)
+        assertEquals(listOf(600), scheduler.scheduled)
+        assertEquals(600, settings.reminderMinutes.first())
+    }
+
+    @Test
+    fun reconcile_schedulesWhenPro() = runBlocking {
+        pro = true
+        controller().enable(600)
+        controller().reconcile()
+        assertEquals(listOf(600, 600), scheduler.scheduled)
+    }
+
+    @Test
     fun initialDelay_isTodayIfAheadElseTomorrow() {
         val now = LocalDateTime.of(2026, 11, 13, 9, 0)
         assertEquals(60 * 60_000L, ReminderScheduler.initialDelayMillis(10 * 60, now))

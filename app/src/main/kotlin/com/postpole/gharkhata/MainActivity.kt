@@ -1,5 +1,6 @@
 package com.postpole.gharkhata
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +11,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -32,11 +34,30 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var update: InAppUpdate
 
+    /** Bumped each time a reminder tap asks for Today; AppNavHost navigates on every change. */
+    private val goToToday = mutableIntStateOf(0)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        consumeGoToToday(intent)
+    }
+
+    private fun consumeGoToToday(intent: Intent?) {
+        if (intent?.getBooleanExtra(EXTRA_GO_TO_TODAY, false) == true) {
+            intent.removeExtra(EXTRA_GO_TO_TODAY)
+            goToToday.intValue++
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         update = InAppUpdate(this, onError = analytics::recordNonFatal)
-        if (savedInstanceState == null) update.check()
+        if (savedInstanceState == null) {
+            update.check()
+            consumeGoToToday(intent)
+        }
         setContent {
             val theme by viewModel.theme.collectAsStateWithLifecycle()
             val updateReady by update.readyToInstall.collectAsStateWithLifecycle()
@@ -47,7 +68,7 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.DARK -> true
             }
             GharKhataTheme(darkTheme = dark, dynamicColor = theme.dynamicColor) {
-                AppNavHost(onScreen = viewModel::onScreen)
+                AppNavHost(onScreen = viewModel::onScreen, goToToday = goToToday.intValue)
                 if (updateReady && !dismissed) {
                     AlertDialog(
                         onDismissRequest = { dismissed = true },
@@ -68,5 +89,10 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         update.release()
         super.onDestroy()
+    }
+
+    companion object {
+        /** Boolean extra set by the reminder notification: open on the Today tab. */
+        const val EXTRA_GO_TO_TODAY = "com.postpole.gharkhata.GO_TO_TODAY"
     }
 }

@@ -1,5 +1,6 @@
 package com.postpole.gharkhata.ui.month
 
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -125,7 +126,7 @@ internal fun DayMarkSheetContent(
         ) {
             Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 ProviderAvatar(provider.type, container = gk.lime, content = gk.onLime)
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text(
                         LocalDate.ofEpochDay(epochDay)
                             .format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy", Locale.getDefault()))
@@ -133,7 +134,7 @@ internal fun DayMarkSheetContent(
                         style = MaterialTheme.typography.labelLarge,
                         color = cs.onSurfaceVariant,
                     )
-                    Text(provider.name, style = MaterialTheme.typography.headlineSmall)
+                    Text(provider.name, style = MaterialTheme.typography.headlineSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
 

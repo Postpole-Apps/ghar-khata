@@ -36,7 +36,10 @@ class GharKhataApp : Application(), Configuration.Provider {
         super.onCreate()
         billing.start()
         logLaunch()
-        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch { reminders.reconcile() }
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+            // Re-runs whenever the entitlement changes (e.g. Play revokes Pro after a refund).
+            billing.isPro.collect { reminders.reconcile() }
+        }
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) = billing.onForeground()

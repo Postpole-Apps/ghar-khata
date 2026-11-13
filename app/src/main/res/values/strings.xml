@@ -320,11 +320,14 @@
     <!-- CSV -->
     <string name="backup_export_csv_pro">Export attendance and bills as CSV</string>
     <string name="settings_pro_badge">Pro</string>
+    <string name="backup_export_csv_hint">Attendance and bills, for Excel or Sheets</string>
+    <string name="settings_pro_hero_subtitle">One-time · unlimited providers, bill image or PDF, CSV</string>
+    <string name="settings_pro_active_subtitle">Thank you! Everything is unlocked.</string>
 
     <!-- Reminder and language -->
-    <string name="settings_section_reminder">Reminder</string>
+    <string name="settings_section_reminder">Reminder &amp; language</string>
     <string name="settings_reminder">Daily reminder time</string>
-    <string name="settings_reminder_off">Off</string>
+    <string name="settings_reminder_off">Off · reminds you to mark today</string>
     <string name="settings_reminder_turn_off">Turn off</string>
     <string name="settings_reminder_save">Set</string>
     <string name="settings_language">Language</string>

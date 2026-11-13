@@ -1,25 +1,32 @@
 package com.postpole.gharkhata.domain
 
+import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.data.DayMarkEntity
 import com.postpole.gharkhata.data.DayStatus
 import com.postpole.gharkhata.data.MonthSettlementEntity
 import com.postpole.gharkhata.data.ProviderEntity
 import com.postpole.gharkhata.data.RateChangeEntity
+import java.math.BigDecimal
+import java.math.MathContext
+import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.YearMonth
 
 /**
  * Attendance and bills as one CSV. Column names are fixed English (a spreadsheet format, not UI copy):
  *
- *     record,provider,period,date,status,qty,billed,previous_balance,due,paid,paid_on,note
+ *     record,provider,period,date,status,qty,rate,amount,billed,previous_balance,due,paid,paid_on,note
  *
  * `attendance` rows: one per day from the provider's start to today, with `status` one of
- * present/absent/half/extra/off (not scheduled) and the quantity delivered. `bill` rows: one per month,
+ * present/absent/half/extra/off (not scheduled) and the quantity delivered. `rate` is the rate in effect that day (rupees; the monthly salary for
+ * monthly-fixed providers) and `amount` what that day adds to the bill before paid leaves and
+ * deductions (qty x rate per unit, the rate per visit, one scheduled day's share of the salary for
+ * monthly-fixed); both are empty when they do not apply. `bill` rows: one per month,
  * with amounts in rupees (two decimals), `paid`/`paid_on` when a settlement exists. Rows with quotes,
  * commas or line breaks are escaped per RFC 4180; lines end in CRLF.
  */
 object AttendanceCsv {
-    const val HEADER = "record,provider,period,date,status,qty,billed,previous_balance,due,paid,paid_on,note"
+    const val HEADER = "record,provider,period,date,status,qty,rate,amount,billed,previous_balance,due,paid,paid_on,note"
 
     fun build(
         providers: List<ProviderEntity>,
@@ -34,6 +41,7 @@ object AttendanceCsv {
             val pMarks = marks.filter { it.providerId == p.id }
             val pSettlements = settlements.filter { it.providerId == p.id }
             val markByDay = pMarks.associateBy { it.epochDay }
+            val sortedRates = pRates.sortedBy { it.effectiveFromEpochDay }
 
             for (d in p.startEpochDay..today) {
                 val mark = markByDay[d]
@@ -50,8 +58,10 @@ object AttendanceCsv {
                     status == "half" -> "0.5"
                     else -> qtyText(mark?.qty ?: p.defaultQty)
                 }
+                val rate = sortedRates.lastOrNull { it.effectiveFromEpochDay <= d }?.amountPaise
                 row(
                     "attendance", p.name, period(d), LocalDate.ofEpochDay(d).toString(), status, qty,
+                    rate?.let { rupees(it) }.orEmpty(), rate?.let { dayAmount(p, it, d, status, mark?.qty) }.orEmpty(),
                     "", "", "", "", "", mark?.note.orEmpty(),
                 )
             }
@@ -63,7 +73,7 @@ object AttendanceCsv {
                 val bill = BillCalculator.compute(p, pRates, pMarks, code, today, pSettlements)
                 val s = pSettlements.firstOrNull { it.yearMonth == code }
                 row(
-                    "bill", p.name, "%04d-%02d".format(m.year, m.monthValue), "", "", "",
+                    "bill", p.name, "%04d-%02d".format(m.year, m.monthValue), "", "", "", "", "",
                     rupees(bill.totalPaise), rupees(bill.previousBalancePaise), rupees(bill.duePaise),
                     s?.let { rupees(it.paidPaise) }.orEmpty(),
                     s?.let { LocalDate.ofEpochDay(it.paidOnEpochDay).toString() }.orEmpty(),
@@ -72,6 +82,24 @@ object AttendanceCsv {
                 m = m.plusMonths(1)
             }
         }
+    }
+
+    /** What one day adds to the bill (rupees), or "" when nothing is billed that day. */
+    private fun dayAmount(p: ProviderEntity, ratePaise: Long, epochDay: Long, status: String, markQty: Double?): String {
+        if (status == "absent" || status == "off") return ""
+        val share = if (status == "half") BigDecimal("0.5") else BigDecimal.ONE
+        val rate = BigDecimal(ratePaise)
+        val paise = when (p.billingMode) {
+            BillingMode.PER_UNIT -> BigDecimal.valueOf(if (status == "half") 0.5 else markQty ?: p.defaultQty) * rate
+            BillingMode.PER_VISIT -> share * rate
+            BillingMode.MONTHLY_FIXED -> {
+                val ym = YearMonth.from(LocalDate.ofEpochDay(epochDay))
+                val scheduled = Schedule.countScheduled(p.scheduleMask, ym.atDay(1).toEpochDay(), ym.atEndOfMonth().toEpochDay())
+                if (scheduled == 0 || !Schedule.isScheduled(p.scheduleMask, epochDay)) return ""
+                share * rate.divide(BigDecimal(scheduled), MathContext(30, RoundingMode.HALF_EVEN))
+            }
+        }
+        return rupees(paise.setScale(0, RoundingMode.HALF_UP).longValueExact())
     }
 
     private fun StringBuilder.row(vararg cells: String) {
