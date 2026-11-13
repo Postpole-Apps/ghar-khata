@@ -1,7 +1,7 @@
 # Play Store listing (draft)
 
 ## Title (29 chars)
-Ghar Khata: Milk & Maid Diary
+Ghar Khata - Milk & Maid Bill
 
 ## Short description (69 chars)
 Mark milk, maid & newspaper days. Auto monthly bill. Offline, no ads.
@@ -46,5 +46,5 @@ Answer: **"My app doesn't provide any financial features."**
 "Mark paid" is only a personal note; no money moves through the app. There is no UPI or payment integration.
 
 ## Other
-- Privacy policy URL and support email are still placeholders in `app/src/main/res/values/app_config.xml`; replace before publishing.
+- Privacy policy URL and support email are set in `app/src/main/res/values/app_config.xml`.
 - Permissions: INTERNET and AD_ID (analytics), POST_NOTIFICATIONS (optional Pro reminder). No SMS, contacts, location, storage or exact-alarm permissions.

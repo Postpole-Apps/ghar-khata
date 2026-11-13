@@ -294,7 +294,7 @@ internal fun BillPreviewContent(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     BigButton(
                         stringResource(R.string.bill_share_image), Icons.Outlined.Image,
-                        container = cs.surfaceContainerHigh, content = cs.onSurface, modifier = Modifier.weight(1f), onClick = onShareImage,
+                        container = cs.surfaceContainerHigh, content = cs.onSurface, modifier = Modifier.weight(1.12f), onClick = onShareImage,
                         badge = !isPro,
                     )
                     BigButton(
