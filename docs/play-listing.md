@@ -3,8 +3,8 @@
 ## Title (29 chars)
 Ghar Khata: Milk & Maid Diary
 
-## Short description (69 chars)
-Mark milk, maid & newspaper days. Auto monthly bill. Offline, no ads.
+## Short description (72 chars)
+Mark milk, maid & newspaper days. Auto monthly bill. No ads, no sign-up.
 
 ## Category
 House & Home (not Finance)
@@ -25,8 +25,8 @@ Newspaper copies per day, water can deliveries, cook or driver visits: pick per 
 **Share the monthly bill**
 Send the bill as text on WhatsApp. Pro adds a bill image or PDF.
 
-**Offline and private**
-Works fully offline. No account, no sign-up, no ads. Back up your data to a file you choose, and restore it any time. Backup is always free.
+**Private and simple**
+Your diary stays on your phone. No account, no sign-up, no ads. Back up your data to a file you choose, and restore it any time. Backup is always free. Usage analytics and crash reports (not your diary entries) are described in the Privacy Policy.
 
 **Free**
 Marking days, rates, paid leaves, the monthly bill and backup are free for up to 3 providers.
@@ -36,7 +36,7 @@ Unlimited providers, bill as image or PDF, CSV export, year summary and a daily 
 
 Available in English and Hindi (follows your phone's language).
 
-Search keywords: doodh hisab, milk diary, maid attendance, kaamwali bai salary, newspaper bill, water can, monthly bill, offline.
+Search keywords: doodh hisab, milk diary, maid attendance, kaamwali bai salary, newspaper bill, water can, monthly bill.
 
 ## Wording rules
 Avoid in the listing: "expense tracker", "budget", "loan", "udhaar/credit", "payments".
