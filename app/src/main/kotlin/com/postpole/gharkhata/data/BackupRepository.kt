@@ -75,11 +75,25 @@ class BackupRepository @Inject constructor(
         return data.providers.size
     }
 
-    /** Placeholder: writes a header-only attendance CSV. G7 replaces it with real attendance/bills. */
-    suspend fun exportItemsCsv(out: OutputStream): Int {
-        out.write("provider,date,status,qty\r\n".toByteArray(Charsets.UTF_8))
+    /**
+     * Pro: attendance (one row per day) and bills (one row per month) for every provider, see
+     * [com.postpole.gharkhata.domain.AttendanceCsv]. Returns the number of providers exported.
+     */
+    suspend fun exportItemsCsv(out: OutputStream, today: Long = java.time.LocalDate.now().toEpochDay()): Int {
+        val data = db.withTransaction {
+            BackupData(
+                providers = db.providerDao().getAll(),
+                rateChanges = db.rateChangeDao().getAll(),
+                dayMarks = db.dayMarkDao().getAll(),
+                settlements = db.monthSettlementDao().getAll(),
+            )
+        }
+        val csv = com.postpole.gharkhata.domain.AttendanceCsv.build(
+            data.providers, data.rateChanges, data.dayMarks, data.settlements, today,
+        )
+        out.write(csv.toByteArray(Charsets.UTF_8))
         out.flush()
-        return 0
+        return data.providers.size
     }
 
     internal fun parse(text: String): BackupData {

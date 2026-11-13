@@ -124,9 +124,9 @@ class BackupRepositoryTest {
     }
 
     @Test
-    fun csv_isHeaderOnlyPlaceholder() = runBlocking {
+    fun csv_withNoProviders_isHeaderOnly() = runBlocking {
         val out = ByteArrayOutputStream()
         assertEquals(0, repo.exportItemsCsv(out))
-        assertEquals("provider,date,status,qty\r\n", out.toString(Charsets.UTF_8))
+        assertEquals(com.postpole.gharkhata.domain.AttendanceCsv.HEADER + "\r\n", out.toString(Charsets.UTF_8))
     }
 }

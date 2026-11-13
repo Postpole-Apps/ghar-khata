@@ -26,7 +26,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.DoneAll
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
@@ -44,6 +47,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import com.postpole.gharkhata.ui.pro.ProReason
+import com.postpole.gharkhata.ui.pro.ProSheet
+import com.postpole.gharkhata.ui.pro.rememberIsPro
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -86,15 +94,36 @@ fun BillPreviewScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showPaid by remember { mutableStateOf(false) }
+    var showPro by remember { mutableStateOf(false) }
+    val isPro = rememberIsPro()
+    val scope = rememberCoroutineScope()
     val provider = state.provider
     val bill = state.bill
     val formatter = remember(context) { BillTextFormatter(StringSource { id, args -> context.getString(id, *args) }) }
     val shareText = remember(provider, bill, state.settlement) {
         if (provider != null && bill != null) formatter.format(provider, bill, state.settlement) else ""
     }
+    val cardBuilder = remember(context) { BillCardBuilder(StringSource { id, args -> context.getString(id, *args) }) }
+    fun shareFile(format: BillFileFormat) {
+        if (!isPro) { showPro = true; return }
+        if (provider == null || bill == null) return
+        val data = cardBuilder.build(provider, bill, state.settlement)
+        scope.launch {
+            val ok = try {
+                shareBillFile(context, data, format, "bill-${provider.id}-${state.yearMonth}")
+            } catch (e: java.io.IOException) {
+                false
+            }
+            if (ok) viewModel.onShared(format.analytics)
+            else android.widget.Toast.makeText(context, R.string.bill_share_failed, android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
     BillPreviewContent(
         state = state,
+        isPro = isPro,
         onBack = onBack,
+        onShareImage = { shareFile(BillFileFormat.IMAGE) },
+        onSharePdf = { shareFile(BillFileFormat.PDF) },
         onShareText = { shareAsText(context, shareText); viewModel.onShared("text") },
         onShareWhatsApp = {
             BillTextFormatter.whatsAppUrl(provider?.phone, shareText)?.let {
@@ -103,6 +132,7 @@ fun BillPreviewScreen(
         },
         onMarkPaid = { showPaid = true },
     )
+    if (showPro) ProSheet(onDismiss = { showPro = false }, reason = ProReason.BILL_IMAGE)
     if (showPaid && provider != null && bill != null) {
         MarkPaidDialog(
             providerName = provider.name,
@@ -144,7 +174,10 @@ private fun startSafely(context: Context, intent: Intent) {
 @Composable
 internal fun BillPreviewContent(
     state: MonthState,
+    isPro: Boolean,
     onBack: () -> Unit,
+    onShareImage: () -> Unit,
+    onSharePdf: () -> Unit,
     onShareText: () -> Unit,
     onShareWhatsApp: () -> Unit,
     onMarkPaid: () -> Unit,
@@ -253,6 +286,18 @@ internal fun BillPreviewContent(
                     BigButton(
                         stringResource(R.string.bill_share_text), Icons.Outlined.Share,
                         container = cs.surfaceContainerHigh, content = cs.onSurface, modifier = Modifier.weight(1f), onClick = onShareText,
+                    )
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    BigButton(
+                        stringResource(R.string.bill_share_image), Icons.Outlined.Image,
+                        container = cs.surfaceContainerHigh, content = cs.onSurface, modifier = Modifier.weight(1f), onClick = onShareImage,
+                        badge = !isPro,
+                    )
+                    BigButton(
+                        stringResource(R.string.bill_share_pdf), Icons.Outlined.PictureAsPdf,
+                        container = cs.surfaceContainerHigh, content = cs.onSurface, modifier = Modifier.weight(1f), onClick = onSharePdf,
+                        badge = !isPro,
                     )
                 }
                 BigButton(
@@ -379,6 +424,8 @@ internal fun MarkPaidDialog(
     initialNote: String?,
     onDismiss: () -> Unit,
     onSave: (paidPaise: Long, paidOnEpochDay: Long, note: String?) -> Unit,
+    /** Draw the dialog card in place instead of in a window (the screenshot tests can't capture windows). */
+    inline: Boolean = false,
 ) {
     val gk = MaterialTheme.gharColors
     val locale = Locale.getDefault()
@@ -390,11 +437,10 @@ internal fun MarkPaidDialog(
     val diff = if (paise == null) 0L else duePaise - paise
     val nextMonth = BillTextFormatter.monthName(yearMonth.plusMonths(1), locale)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        shape = GharShapesExtra.ExtraLargeIncreased,
-        title = { Text(stringResource(R.string.paid_title, BillTextFormatter.monthName(yearMonth, locale))) },
-        text = {
+    val title: @Composable () -> Unit = {
+        Text(stringResource(R.string.paid_title, BillTextFormatter.monthName(yearMonth, locale)), style = MaterialTheme.typography.headlineSmall)
+    }
+    val body: @Composable () -> Unit = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.paid_due_line, providerName, BillTextFormatter.money(duePaise)))
                 OutlinedTextField(
@@ -423,7 +469,9 @@ internal fun MarkPaidDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
-                        TextButton(onClick = { showPicker = true }) { Text(stringResource(R.string.paid_pick_date)) }
+                        IconButton(onClick = { showPicker = true }) {
+                            Icon(Icons.Outlined.CalendarMonth, contentDescription = stringResource(R.string.paid_pick_date))
+                        }
                     },
                 )
                 OutlinedTextField(
@@ -439,14 +487,34 @@ internal fun MarkPaidDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        },
-        confirmButton = {
-            TextButton(enabled = paise != null, onClick = { onSave(paise ?: return@TextButton, paidOn, note) }) {
-                Text(stringResource(R.string.provider_save))
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-    )
+        
+    }
+    val confirm: @Composable () -> Unit = {
+        TextButton(enabled = paise != null, onClick = { onSave(paise ?: return@TextButton, paidOn, note) }) {
+            Text(stringResource(R.string.provider_save))
+        }
+    }
+    val dismiss: @Composable () -> Unit = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+    if (inline) {
+        Column(
+            Modifier.fillMaxWidth().padding(24.dp).clip(GharShapesExtra.ExtraLargeIncreased)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            title()
+            body()
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { dismiss(); confirm() }
+        }
+    } else {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            shape = GharShapesExtra.ExtraLargeIncreased,
+            title = title,
+            text = body,
+            confirmButton = confirm,
+            dismissButton = dismiss,
+        )
+    }
 
     if (showPicker) {
         val pickerState = rememberDatePickerState(

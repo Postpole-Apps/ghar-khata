@@ -46,13 +46,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.postpole.gharkhata.BuildConfig
 import com.postpole.gharkhata.R
 import com.postpole.gharkhata.data.ThemeMode
+import com.postpole.gharkhata.ui.pro.ProBadge
+import com.postpole.gharkhata.ui.pro.ProReason
+import com.postpole.gharkhata.ui.pro.ProSheet
 import java.util.Currency
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    onOpenPro: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
@@ -63,6 +65,7 @@ fun SettingsScreen(
     val resolver = context.contentResolver
     val snackbarHostState = remember { SnackbarHostState() }
 
+    var showPro by rememberSaveable { mutableStateOf<String?>(null) }
     var showTheme by rememberSaveable { mutableStateOf(false) }
     var showCurrency by rememberSaveable { mutableStateOf(false) }
     var pendingImport by rememberSaveable { mutableStateOf<String?>(null) }
@@ -134,8 +137,11 @@ fun SettingsScreen(
                 modifier = Modifier.clickable { pickImport.launch(arrayOf("application/json", "text/plain", "*/*")) },
             )
             ListItem(
-                headlineContent = { Text(stringResource(R.string.backup_export_csv)) },
-                modifier = Modifier.clickable { exportCsv.launch(backupFileName("csv")) },
+                headlineContent = { Text(stringResource(R.string.backup_export_csv_pro)) },
+                trailingContent = { if (!isPro) ProBadge() },
+                modifier = Modifier.clickable {
+                    if (isPro) exportCsv.launch(backupFileName("csv")) else showPro = "csv"
+                },
             )
             HorizontalDivider()
 
@@ -145,7 +151,7 @@ fun SettingsScreen(
             } else {
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.upgrade_to_pro)) },
-                    modifier = Modifier.clickable(onClick = onOpenPro),
+                    modifier = Modifier.clickable { showPro = "general" },
                 )
             }
             ListItem(
@@ -183,6 +189,13 @@ fun SettingsScreen(
                 },
             )
         }
+    }
+
+    showPro?.let { why ->
+        ProSheet(
+            onDismiss = { showPro = null },
+            reason = if (why == "csv") ProReason.CSV else ProReason.GENERAL,
+        )
     }
 
     if (showTheme) {

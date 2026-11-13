@@ -27,12 +27,29 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.setProgress
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -71,6 +88,24 @@ fun DayMarkSheet(
     onReset: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = GharShapesExtra.SheetTop,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        DayMarkSheetContent(provider, epochDay, mark, onSave, onReset)
+    }
+}
+
+/** Sheet body, separate from the window so the screenshot tests can render it. */
+@Composable
+internal fun DayMarkSheetContent(
+    provider: ProviderEntity,
+    epochDay: Long,
+    mark: DayMarkEntity?,
+    onSave: (status: DayStatus, qty: Double?, note: String?) -> Unit,
+    onReset: () -> Unit,
+) {
     val gk = MaterialTheme.gharColors
     val cs = MaterialTheme.colorScheme
     val perUnit = provider.billingMode == BillingMode.PER_UNIT
@@ -82,17 +117,13 @@ fun DayMarkSheet(
     val unit = provider.unitLabel
     val step = if (unit.trim().equals("L", ignoreCase = true)) "0.5" else "1"
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        shape = GharShapesExtra.SheetTop,
-        containerColor = cs.surface,
-    ) {
+    run {
         Column(
             Modifier.fillMaxWidth().navigationBarsPadding().verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp).padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 ProviderAvatar(provider.type, container = gk.lime, content = gk.onLime)
                 Column {
                     Text(
@@ -124,7 +155,7 @@ fun DayMarkSheet(
                 StatusOption(
                     selected = status == DayStatus.ABSENT,
                     icon = Icons.Filled.Close,
-                    label = stringResource(R.string.status_absent),
+                    label = stringResource(if (perUnit) R.string.status_skipped else R.string.status_absent),
                     modifier = Modifier.weight(1f),
                 ) { status = DayStatus.ABSENT }
             }
@@ -140,14 +171,22 @@ fun DayMarkSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         color = cs.onSurfaceVariant,
                     )
+                    // Ruler between the buttons; the - / + buttons stay as the accessible, non-gesture way to change it.
                     Row(
-                        Modifier.padding(top = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(24.dp),
+                        Modifier.padding(top = 12.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         StepButton(Icons.Outlined.Remove, stringResource(R.string.provider_qty_decrease), cs.surfaceContainerHigh, cs.onSurface) {
                             qty = stepQty(qty, unit, -1)
                         }
+                        QtyRuler(
+                            value = value ?: 0.0,
+                            step = step.toDouble(),
+                            unit = unit,
+                            onValueChange = { qty = formatQty(it) },
+                            modifier = Modifier.weight(1f),
+                        )
                         StepButton(Icons.Outlined.Add, stringResource(R.string.provider_qty_increase), gk.hero, gk.lime) {
                             qty = stepQty(qty, unit, 1)
                         }
@@ -155,12 +194,18 @@ fun DayMarkSheet(
                 }
             }
 
-            OutlinedTextField(
+            TextField(
                 value = note,
                 onValueChange = { note = it },
                 label = { Text(stringResource(R.string.today_note)) },
                 singleLine = true,
                 shape = MaterialTheme.shapes.large,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = cs.surfaceContainerHigh,
+                    unfocusedContainerColor = cs.surfaceContainerHigh,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                ),
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -224,3 +269,78 @@ private fun StepButton(icon: ImageVector, description: String, container: androi
         Icon(icon, contentDescription = description, tint = content)
     }
 }
+
+/**
+ * Horizontal ruler: swipe sideways to change the quantity, one tick per [step], a longer tick every second
+ * step. The dark marker in the middle is the current value. Exposed to accessibility as an adjustable
+ * value (set-progress), and the sheet keeps its -/+ buttons next to it.
+ */
+@Composable
+private fun QtyRuler(
+    value: Double,
+    step: Double,
+    unit: String,
+    onValueChange: (Double) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MaterialTheme.colorScheme
+    val tickGap = 14.dp
+    val description = stringResource(R.string.daysheet_ruler)
+    val current by rememberUpdatedState(value)
+    val emit by rememberUpdatedState(onValueChange)
+    var carry by remember { mutableStateOf(0f) }
+    val tickPx = with(LocalDensity.current) { tickGap.toPx() }
+    val minor = cs.onSurfaceVariant.copy(alpha = 0.55f)
+    val major = cs.onSurfaceVariant
+    val marker = MaterialTheme.gharColors.hero
+    Box(
+        modifier.height(56.dp).clip(CircleShape).background(cs.surfaceContainerHigh)
+            .semantics {
+                contentDescription = description
+                stateDescription = "${formatQty(value)} $unit"
+                progressBarRangeInfo = ProgressBarRangeInfo(value.toFloat(), step.toFloat()..MAX_QTY.toFloat())
+                setProgress { target ->
+                    emit((Math.round(target / step) * step).coerceIn(step, MAX_QTY))
+                    true
+                }
+            }
+            .pointerInput(step, tickPx) {
+                detectHorizontalDragGestures(onDragEnd = { carry = 0f }, onDragCancel = { carry = 0f }) { change, drag ->
+                    change.consume()
+                    // Dragging left moves the ruler left, i.e. the value goes up (like sliding a tape measure).
+                    carry -= drag
+                    val steps = (carry / tickPx).toInt()
+                    if (steps != 0) {
+                        carry -= steps * tickPx
+                        emit((current + steps * step).coerceIn(step, MAX_QTY))
+                    }
+                }
+            },
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val centre = size.width / 2
+            val index = Math.round(current / step).toInt()
+            val half = (centre / tickPx).toInt() + 2
+            for (i in -half..half) {
+                val tickValue = index + i
+                if (tickValue < 1) continue
+                val x = centre + i * tickPx - carry
+                if (x < 0f || x > size.width) continue
+                val isMajor = tickValue % 2 == 0
+                val h = size.height * if (isMajor) 0.5f else 0.3f
+                drawLine(
+                    if (isMajor) major else minor, Offset(x, (size.height - h) / 2), Offset(x, (size.height + h) / 2),
+                    strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round,
+                )
+                val mid = x + tickPx / 2
+                if (mid < size.width) {
+                    val hh = size.height * 0.18f
+                    drawLine(minor.copy(alpha = 0.35f), Offset(mid, (size.height - hh) / 2), Offset(mid, (size.height + hh) / 2), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+                }
+            }
+            drawLine(marker, Offset(centre, size.height * 0.15f), Offset(centre, size.height * 0.85f), strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round)
+        }
+    }
+}
+
+private const val MAX_QTY = 99.0
