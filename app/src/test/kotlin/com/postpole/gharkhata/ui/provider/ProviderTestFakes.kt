@@ -92,11 +92,23 @@ class FakeMarkDao : DayMarkDao {
 }
 
 class FakeSettlementDao : MonthSettlementDao {
-    override fun observeFor(providerId: Long): Flow<List<MonthSettlementEntity>> = MutableStateFlow(emptyList())
-    override suspend fun get(providerId: Long, yyyymm: Int): MonthSettlementEntity? = null
-    override suspend fun upsert(settlement: MonthSettlementEntity) = Unit
-    override suspend fun delete(providerId: Long, yyyymm: Int) = Unit
-    override suspend fun getAll(): List<MonthSettlementEntity> = emptyList()
+    val all = MutableStateFlow<List<MonthSettlementEntity>>(emptyList())
+
+    override fun observeFor(providerId: Long): Flow<List<MonthSettlementEntity>> =
+        all.map { l -> l.filter { it.providerId == providerId }.sortedByDescending { it.yearMonth } }
+
+    override suspend fun get(providerId: Long, yyyymm: Int): MonthSettlementEntity? =
+        all.value.firstOrNull { it.providerId == providerId && it.yearMonth == yyyymm }
+
+    override suspend fun upsert(settlement: MonthSettlementEntity) {
+        all.value = all.value.filterNot { it.providerId == settlement.providerId && it.yearMonth == settlement.yearMonth } + settlement
+    }
+
+    override suspend fun delete(providerId: Long, yyyymm: Int) {
+        all.value = all.value.filterNot { it.providerId == providerId && it.yearMonth == yyyymm }
+    }
+
+    override suspend fun getAll(): List<MonthSettlementEntity> = all.value
     override suspend fun insertAll(settlements: List<MonthSettlementEntity>) = Unit
     override suspend fun deleteAll() = Unit
 }
@@ -118,5 +130,6 @@ class TestDb {
     val rates = FakeRateDao()
     val providers = FakeProviderDao(rates)
     val marks = FakeMarkDao()
-    val repository = ProviderRepository(providers, rates, marks, FakeSettlementDao())
+    val settlements = FakeSettlementDao()
+    val repository = ProviderRepository(providers, rates, marks, settlements)
 }

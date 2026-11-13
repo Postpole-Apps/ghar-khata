@@ -9,6 +9,7 @@ import com.postpole.gharkhata.data.RateChangeEntity
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
+import java.time.LocalDate
 import java.time.YearMonth
 
 /**
@@ -16,9 +17,12 @@ import java.time.YearMonth
  *
  * Billed range = [max(month start, provider start), min(month end, today)].
  * MONTHLY_FIXED prorates the salary over that range using scheduled days in the *whole* month as divisor.
- * Previous balance only counts earlier months whose settlement is short-paid (billed > paid);
- * months with no settlement row cannot be priced here, so callers wanting them included must pass
- * a synthetic settlement.
+ * Previous balance walks the months from the provider's start month up to (not including) the requested one,
+ * carrying a running balance: a settled month resets it to `billedPaise - paidPaise` (the snapshot is the
+ * month's due, so it already includes whatever was carried in; an overpayment makes it negative, a credit);
+ * a month without a settlement row adds its own computed total. Callers must pass all of the provider's marks
+ * and rates. Rounding happens once, on each month's exact total; line amounts are cumulatively rounded so
+ * they add up to that total.
  */
 object BillCalculator {
     private val MC = MathContext(30, RoundingMode.HALF_EVEN)
@@ -41,7 +45,33 @@ object BillCalculator {
         today: Long,
         settlements: List<MonthSettlementEntity>,
     ): MonthBill {
-        val ym = YearMonth.of(yearMonth / 100, yearMonth % 100)
+        val own = settlements.filter { it.providerId == provider.id }.associateBy { it.yearMonth }
+        var previous = 0L
+        val target = YearMonth.of(yearMonth / 100, yearMonth % 100)
+        var m = YearMonth.from(LocalDate.ofEpochDay(provider.startEpochDay))
+        own.keys.minOrNull()?.let { e -> YearMonth.of(e / 100, e % 100).let { if (it < m) m = it } }
+        while (m < target) {
+            val code = m.year * 100 + m.monthValue
+            val s = own[code]
+            previous = if (s != null) s.billedPaise - s.paidPaise
+            else previous + month(provider, rates, marks, code, today).totalPaise
+            m = m.plusMonths(1)
+        }
+        val bill = month(provider, rates, marks, yearMonth, today)
+        if (previous == 0L) return bill
+        val lines = bill.lines + BillLine(BillLineKind.PREVIOUS_BALANCE, amountPaise = previous)
+        return MonthBill(yearMonth, lines, bill.totalPaise, previous, bill.totalPaise + previous)
+    }
+
+    /** One month on its own (no previous balance). */
+    private fun month(
+        provider: ProviderEntity,
+        rates: List<RateChangeEntity>,
+        marks: List<DayMarkEntity>,
+        yearMonth: Int,
+        today: Long,
+    ): MonthBill {
+        val ym =YearMonth.of(yearMonth / 100, yearMonth % 100)
         val monthStart = ym.atDay(1).toEpochDay()
         val monthEnd = ym.atEndOfMonth().toEpochDay()
         val start = maxOf(monthStart, provider.startEpochDay)
@@ -123,12 +153,27 @@ object BillCalculator {
             d++
         }
 
+        // Exact total first, rounded once. Each line is then cumulatively rounded so lines sum to the total.
+        val leaveExact = segs.fold(BigDecimal.ZERO) { a, x -> a + x.leaveAmount }
+        val deductExact = segs.fold(BigDecimal.ZERO) { a, x -> a + x.deductAmount }
+        var exactTotal = segs.fold(BigDecimal.ZERO) { a, x -> a + x.amount }
+        if (provider.billingMode == BillingMode.PER_VISIT) exactTotal += leaveExact
+        if (provider.billingMode == BillingMode.MONTHLY_FIXED) exactTotal -= deductExact
+        val total = exactTotal.roundPaise()
+
+        var cum = BigDecimal.ZERO
+        var cumRounded = 0L
+        fun step(exact: BigDecimal): Long {
+            cum += exact
+            val r = cum.roundPaise()
+            val line = r - cumRounded
+            cumRounded = r
+            return line
+        }
+
         val lines = mutableListOf<BillLine>()
-        var total = 0L
         for (s in segs) {
-            val amt = s.amount.roundPaise()
-            total += amt
-            lines += BillLine(BillLineKind.RATE_SEGMENT, s.from, s.to, s.rate, s.qty.toDouble(), amt)
+            lines += BillLine(BillLineKind.RATE_SEGMENT, s.from, s.to, s.rate, s.qty.toDouble(), step(s.amount))
         }
         if (absentTotal.signum() > 0) {
             lines += BillLine(BillLineKind.ABSENCES, start, end, quantity = absentTotal.toDouble())
@@ -136,29 +181,18 @@ object BillCalculator {
         when (provider.billingMode) {
             BillingMode.PER_UNIT -> Unit
             BillingMode.PER_VISIT -> if (leavesUsed.signum() > 0) {
-                val amt = segs.fold(BigDecimal.ZERO) { a, s -> a + s.leaveAmount }.roundPaise()
-                total += amt
-                lines += BillLine(BillLineKind.PAID_LEAVES, start, end, quantity = leavesUsed.toDouble(), amountPaise = amt)
+                lines += BillLine(BillLineKind.PAID_LEAVES, start, end, quantity = leavesUsed.toDouble(), amountPaise = step(leaveExact))
             }
             BillingMode.MONTHLY_FIXED -> {
                 if (leavesUsed.signum() > 0) {
                     lines += BillLine(BillLineKind.PAID_LEAVES, start, end, quantity = leavesUsed.toDouble())
                 }
                 if (chargedTotal.signum() > 0) {
-                    val amt = segs.fold(BigDecimal.ZERO) { a, s -> a + s.deductAmount }.roundPaise()
-                    total -= amt
-                    lines += BillLine(BillLineKind.DEDUCTION, start, end, quantity = chargedTotal.toDouble(), amountPaise = -amt)
+                    lines += BillLine(BillLineKind.DEDUCTION, start, end, quantity = chargedTotal.toDouble(), amountPaise = step(deductExact.negate()))
                 }
             }
         }
-
-        val previous = settlements
-            .filter { it.providerId == provider.id && it.yearMonth < yearMonth }
-            .sumOf { maxOf(0L, it.billedPaise - it.paidPaise) }
-        if (previous != 0L) {
-            lines += BillLine(BillLineKind.PREVIOUS_BALANCE, amountPaise = previous)
-        }
-        return MonthBill(yearMonth, lines, total, previous, total + previous)
+        return MonthBill(yearMonth, lines, total, 0L, total)
     }
 
     private fun BigDecimal.roundPaise(): Long = setScale(0, RoundingMode.HALF_UP).longValueExact()

@@ -181,4 +181,94 @@
     <string name="providers_more">More options</string>
     <string name="providers_show_archived">Show archived</string>
     <string name="providers_hide_archived">Hide archived</string>
+
+    <!-- Provider Month -->
+    <string name="month_back">Back</string>
+    <string name="month_edit_provider">Edit provider</string>
+    <string name="month_prev">Previous month</string>
+    <string name="month_next">Next month</string>
+    <string name="month_total_due_so_far">TOTAL DUE · %1$s SO FAR</string>
+    <string name="month_total_due">TOTAL DUE · %1$s</string>
+    <string name="month_breakdown">%1$s this month + %2$s previous balance</string>
+    <string name="month_breakdown_credit">%1$s this month − %2$s credit from earlier</string>
+    <string name="month_breakdown_no_previous">%1$s this month</string>
+    <string name="month_days_delivered">Days delivered</string>
+    <string name="month_days_of">/ %1$d</string>
+    <string name="month_total_qty">Total %1$s</string>
+    <string name="month_absences">Absences</string>
+    <string name="month_paid_leaves">Paid leaves used</string>
+    <string name="month_paid_leaves_of">%1$s of %2$d</string>
+    <string name="month_legend_delivered">✓ Delivered</string>
+    <string name="month_legend_present">✓ Present</string>
+    <string name="month_legend_skipped">✗ Skipped</string>
+    <string name="month_legend_half">½ Half day</string>
+    <string name="month_legend_changed">Changed qty</string>
+    <string name="month_legend_extra">+ Extra (unscheduled day)</string>
+    <string name="month_bill_share">Bill / Share</string>
+    <string name="month_mark_paid">Mark paid</string>
+    <string name="month_update_payment">Update payment</string>
+    <string name="month_cell_before_start">Before billing started</string>
+    <string name="month_cell_future">Upcoming day</string>
+    <string name="month_cell_not_scheduled">Not scheduled</string>
+    <string name="month_cell_edit">Edit this day</string>
+    <string name="month_not_found">This provider no longer exists.</string>
+
+    <!-- Day sheet -->
+    <string name="daysheet_usual">usual %1$s · steps of %2$s</string>
+    <string name="daysheet_reset">Reset to usual</string>
+
+    <!-- Bill preview -->
+    <string name="bill_title">Bill · %1$s</string>
+    <string name="bill_more">More options</string>
+    <string name="bill_hero_label">%1$s · %2$s</string>
+    <string name="bill_total_due_range">Total due · %1$s</string>
+    <string name="bill_donut_of_days">of %1$d days</string>
+    <string name="bill_chip_delivered">%1$d delivered</string>
+    <string name="bill_chip_present">%1$d present</string>
+    <string name="bill_chip_skipped">%1$d skipped</string>
+    <string name="bill_chip_qty">%1$s %2$s</string>
+    <string name="bill_line_segment_unit">%1$s · %2$s × %3$s</string>
+    <string name="bill_line_segment_visit">%1$s · %2$s visits × %3$s</string>
+    <string name="bill_line_segment_monthly">%1$s · %2$s days of %3$s/month</string>
+    <string name="bill_line_absences">Absences</string>
+    <string name="bill_line_paid_leaves">Paid leaves used</string>
+    <string name="bill_line_deduction">Deduction for %1$s unpaid absent days</string>
+    <string name="bill_month_total">%1$s total</string>
+    <string name="bill_previous_balance">Previous balance</string>
+    <string name="bill_due">Total due</string>
+    <string name="bill_paid_stamp">Paid on %1$s · %2$s</string>
+    <string name="bill_share_header">SHARE BILL</string>
+    <string name="bill_share_whatsapp">Send on WhatsApp</string>
+    <string name="bill_share_text">Text</string>
+    <string name="bill_share_chooser">Share bill</string>
+    <string name="bill_share_failed">Couldn\'t open the share option.</string>
+    <string name="bill_nothing_yet">Nothing to bill for this month yet.</string>
+
+    <!-- Mark paid -->
+    <string name="paid_title">Mark %1$s paid</string>
+    <string name="paid_due_line">Total due for %1$s is %2$s.</string>
+    <string name="paid_amount_label">Amount paid</string>
+    <string name="paid_invalid">Enter a valid amount</string>
+    <string name="paid_short">%1$s short. It will be added to %2$s\'s bill.</string>
+    <string name="paid_extra">%1$s extra. It will be taken off %2$s\'s bill.</string>
+    <string name="paid_date_label">Paid on</string>
+    <string name="paid_note_label">Note (optional)</string>
+    <string name="paid_disclaimer">This is only a record for you. No money moves through the app.</string>
+    <string name="paid_pick_date">Pick the payment date</string>
+
+    <!-- Bill text (shared as plain text) -->
+    <string name="billtext_title">%1$s · %2$s</string>
+    <string name="billtext_segment_unit">%1$s: %2$s × %3$s = %4$s</string>
+    <string name="billtext_segment_visit">%1$s: %2$s visits × %3$s = %4$s</string>
+    <string name="billtext_segment_monthly">%1$s: %2$s days of %3$s/month = %4$s</string>
+    <string name="billtext_absences">Absences: %1$s</string>
+    <string name="billtext_paid_leaves">Paid leaves used: %1$s</string>
+    <string name="billtext_paid_leaves_amount">Paid leaves used: %1$s = %2$s</string>
+    <string name="billtext_deduction">Deduction (%1$s unpaid absent days): %2$s</string>
+    <string name="billtext_total">%1$s total: %2$s</string>
+    <string name="billtext_previous">Previous balance: %1$s</string>
+    <string name="billtext_due">Total due: %1$s</string>
+    <string name="billtext_paid_on">Paid on %1$s: %2$s</string>
+    <string name="billtext_balance_left">Balance carried forward: %1$s</string>
+    <string name="billtext_footer">Made with Ghar Khata</string>
 </resources>

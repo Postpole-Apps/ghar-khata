@@ -29,13 +29,19 @@ object Money {
             "." + (a % 100).toString().padStart(2, '0')
     }
 
-    /** Parses "₹1,234", "1234.5", "1,23,456.75" into paise; null if invalid. */
+    /**
+     * Parses "₹1,234", "1234.5", "1,23,456.75" and negatives ("-₹50", "₹-50", "-50") into paise; null if invalid.
+     * A leading minus is accepted; callers that need a positive amount must check the sign.
+     */
     fun parse(text: String): Long? {
-        val s = text.replace(RUPEE, "").replace(",", "").trim()
+        val t = text.replace(",", "").trim()
+        val negative = t.startsWith("-") || t.startsWith("$RUPEE-")
+        val s = t.replace(RUPEE, "").removePrefix("-").trim()
         if (!NUMBER.matches(s)) return null
         val parts = s.split('.')
         val frac = if (parts.size > 1) parts[1].padEnd(2, '0').toLong() else 0L
-        return parts[0].toLong() * 100 + frac
+        val paise = parts[0].toLong() * 100 + frac
+        return if (negative) -paise else paise
     }
 
     private fun group(digits: String): String {

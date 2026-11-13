@@ -39,6 +39,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.postpole.gharkhata.R
+import com.postpole.gharkhata.ui.month.BillPreviewScreen
+import com.postpole.gharkhata.ui.month.ProviderMonthScreen
 import com.postpole.gharkhata.ui.pro.ProScreen
 import com.postpole.gharkhata.ui.provider.NEW_PROVIDER_ID
 import com.postpole.gharkhata.ui.provider.ProviderEditScreen
@@ -56,7 +58,16 @@ object Routes {
     const val SETTINGS = "settings"
     const val PRO = "pro"
 
+    const val PROVIDER_MONTH = "provider/{id}/month/{yyyymm}"
+    const val BILL = "bill/{id}/{yyyymm}"
+
     fun providerEdit(id: Long) = "provider/edit/$id"
+
+    /** Current month when [yearMonth] is omitted. */
+    fun providerMonth(id: Long, yearMonth: Int = currentYearMonth()) = "provider/$id/month/$yearMonth"
+    fun bill(id: Long, yearMonth: Int) = "bill/$id/$yearMonth"
+
+    private fun currentYearMonth() = java.time.LocalDate.now().let { it.year * 100 + it.monthValue }
 
     /** New provider pre-filled with the preset for [type]. */
     fun providerNew(type: ProviderType) = "provider/edit/$NEW_PROVIDER_ID?type=${type.name}"
@@ -108,7 +119,7 @@ fun AppNavHost(onScreen: (String) -> Unit = {}) {
             }
             composable(Routes.PROVIDERS) {
                 ProviderListScreen(
-                    onOpenProvider = { navController.navigate(Routes.providerEdit(it)) },
+                    onOpenProvider = { navController.navigate(Routes.providerMonth(it)) },
                     onAddProvider = { navController.navigate(Routes.providerEdit(NEW_PROVIDER_ID)) },
                     onOpenSettings = { switchTab(Routes.SETTINGS) },
                 )
@@ -121,6 +132,28 @@ fun AppNavHost(onScreen: (String) -> Unit = {}) {
                 ),
             ) {
                 ProviderEditScreen(onBack = { navController.popBackStack() })
+            }
+            composable(
+                Routes.PROVIDER_MONTH,
+                arguments = listOf(
+                    navArgument("id") { type = NavType.LongType },
+                    navArgument("yyyymm") { type = NavType.IntType },
+                ),
+            ) {
+                ProviderMonthScreen(
+                    onBack = { navController.popBackStack() },
+                    onEditProvider = { navController.navigate(Routes.providerEdit(it)) },
+                    onOpenBill = { id, ym -> navController.navigate(Routes.bill(id, ym)) },
+                )
+            }
+            composable(
+                Routes.BILL,
+                arguments = listOf(
+                    navArgument("id") { type = NavType.LongType },
+                    navArgument("yyyymm") { type = NavType.IntType },
+                ),
+            ) {
+                BillPreviewScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.SETTINGS) {
                 SettingsScreen(
