@@ -63,7 +63,7 @@ import com.postpole.gharkhata.ui.theme.GharShapesExtra
 import com.postpole.gharkhata.ui.theme.gharColors
 
 /** Why the Pro sheet was opened; shown under the price. */
-enum class ProReason { GENERAL, PROVIDER_LIMIT, BILL_IMAGE, CSV, YEAR_SUMMARY }
+enum class ProReason { GENERAL, PROVIDER_LIMIT, BILL_IMAGE, CSV, YEAR_SUMMARY, REMINDER }
 
 /** What the sheet needs to draw itself; the screenshot tests build it directly. */
 data class ProSheetState(
@@ -235,6 +235,7 @@ private fun reasonText(reason: ProReason): String = when (reason) {
     ProReason.BILL_IMAGE -> stringResource(R.string.pro_reason_bill_image)
     ProReason.CSV -> stringResource(R.string.pro_reason_csv)
     ProReason.YEAR_SUMMARY -> stringResource(R.string.pro_reason_year_summary)
+    ProReason.REMINDER -> stringResource(R.string.pro_reason_reminder)
     ProReason.GENERAL -> stringResource(R.string.pro_reason_general)
 }
 

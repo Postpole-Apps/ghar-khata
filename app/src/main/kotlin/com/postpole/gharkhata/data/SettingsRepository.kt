@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -40,6 +41,14 @@ class SettingsRepository @Inject constructor(
         it[DEFAULT_CURRENCY] ?: defaultCurrencyFor(Locale.getDefault())
     }
 
+    /** Daily reminder time as minutes after midnight (0..1439); null = reminder off. */
+    val reminderMinutes: Flow<Int?> = dataStore.data.map { it[REMINDER_MINUTES] }
+
+    suspend fun setReminderMinutes(minutes: Int?) {
+        require(minutes == null || minutes in 0..1439) { "minutes out of range" }
+        dataStore.edit { if (minutes == null) it.remove(REMINDER_MINUTES) else it[REMINDER_MINUTES] = minutes }
+    }
+
     suspend fun setDynamicColor(enabled: Boolean) {
         dataStore.edit { it[DYNAMIC_COLOR] = enabled }
     }
@@ -53,6 +62,7 @@ class SettingsRepository @Inject constructor(
     }
 
     private companion object {
+        val REMINDER_MINUTES = intPreferencesKey("reminder_minutes")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val DEFAULT_CURRENCY = stringPreferencesKey("default_currency")

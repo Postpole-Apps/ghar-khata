@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hindi. Good-faith translation: needs native review. -->
+<resources>
+    <string name="app_name">Ghar Khata</string>
+    <string name="nav_settings">सेटिंग</string>
+    <string name="nav_pro">Pro</string>
+    <string name="back">वापस</string>
+    <string name="cancel">रद्द करें</string>
+    <string name="pro_buy">Pro खरीदें — %1$s</string>
+    <string name="pro_loading">कीमत लोड हो रही है…</string>
+    <string name="pro_unavailable">Pro अभी उपलब्ध नहीं है। कृपया बाद में फिर कोशिश करें।</string>
+    <string name="pro_error_purchase">खरीदारी पूरी नहीं हुई। कृपया फिर कोशिश करें।</string>
+    <string name="pro_error_launch">Google Play नहीं खुल पाया। कृपया फिर कोशिश करें।</string>
+    <string name="pro_restore">खरीदारी बहाल करें</string>
+    <string name="pro_pending">आपकी खरीदारी लंबित है। भुगतान पूरा होते ही Pro चालू हो जाएगा।</string>
+    <string name="pro_active">Pro चालू है</string>
+    <string name="pro_locked">यह सुविधा Pro में शामिल है।</string>
+    <string name="upgrade_to_pro">Pro में अपग्रेड करें</string>
+    <string name="settings_section_appearance">दिखावट</string>
+    <string name="settings_section_data">बैकअप और एक्सपोर्ट</string>
+    <string name="settings_section_pro">Pro</string>
+    <string name="settings_section_about">ऐप के बारे में</string>
+    <string name="settings_theme">थीम</string>
+    <string name="theme_system">सिस्टम के अनुसार</string>
+    <string name="theme_light">हल्की</string>
+    <string name="theme_dark">गहरी</string>
+    <string name="settings_dynamic_color">डायनामिक रंग</string>
+    <string name="settings_dynamic_color_unsupported">Android 12 या नए संस्करण की ज़रूरत है</string>
+    <string name="settings_currency">डिफ़ॉल्ट मुद्रा</string>
+    <string name="settings_version">ऐप संस्करण</string>
+    <string name="settings_privacy_policy">गोपनीयता नीति</string>
+    <string name="settings_feedback">सुझाव भेजें</string>
+    <string name="settings_feedback_subject">%1$s के बारे में सुझाव</string>
+    <string name="backup_export_json">फ़ाइल में बैकअप लें</string>
+    <string name="backup_export_json_hint">आपका सारा डेटा आपकी चुनी हुई JSON फ़ाइल में सेव होगा</string>
+    <string name="backup_import_json">बैकअप फ़ाइल से बहाल करें</string>
+    <string name="backup_import_json_hint">ऐप का पूरा डेटा फ़ाइल की सामग्री से बदल जाएगा</string>
+    <string name="backup_import_confirm_title">बैकअप से बहाल करें?</string>
+    <string name="backup_import_confirm_message">इससे ऐप का मौजूदा सारा डेटा चुनी हुई फ़ाइल की सामग्री से बदल जाएगा। इसे वापस नहीं किया जा सकता।</string>
+    <string name="backup_import_confirm_action">डेटा बदलें</string>
+    <string name="backup_exported_generic">फ़ाइल सेव हो गई।</string>
+    <string name="backup_export_failed">फ़ाइल सेव नहीं हो पाई। कृपया फिर कोशिश करें।</string>
+    <string name="backup_imported_generic">बैकअप बहाल हो गया।</string>
+    <string name="backup_import_invalid">यह मान्य बैकअप फ़ाइल नहीं है, या ऐप के नए संस्करण की है। कुछ भी नहीं बदला गया।</string>
+    <string name="backup_import_failed">फ़ाइल पढ़ी नहीं जा सकी। कुछ भी नहीं बदला गया।</string>
+    <string name="restore_checked">खरीदारी जाँच ली गई।</string>
+    <string name="restore_failed">Google Play से संपर्क नहीं हो पाया। कृपया बाद में फिर कोशिश करें।</string>
+    <string name="update_ready_title">अपडेट तैयार है</string>
+    <string name="update_ready_message">नया संस्करण डाउनलोड हो गया है। इंस्टॉल पूरा करने के लिए रीस्टार्ट करें।</string>
+    <string name="update_restart">रीस्टार्ट</string>
+    <string name="update_later">बाद में</string>
+    <string name="nav_today">आज</string>
+    <string name="nav_providers">सेवाएँ</string>
+    <string name="providers_title">सेवाएँ</string>
+    <string name="providers_active_header">चालू · %1$d</string>
+    <string name="providers_archived_header">संग्रहित</string>
+    <string name="providers_add">जोड़ें</string>
+    <string name="providers_empty">अभी कोई सेवा नहीं है। नई सेवा बनाने के लिए जोड़ें दबाएँ।</string>
+    <string name="providers_this_month">इस महीने</string>
+    <string name="providers_archived_subtitle">%1$s · संग्रहित</string>
+    <string name="providers_free_used">इस्तेमाल हुई मुफ़्त सेवाएँ</string>
+    <string name="providers_free_hint">एक को संग्रहित करें, या असीमित के लिए Pro लें</string>
+    <string name="providers_see_pro">Pro देखें</string>
+    <string name="providers_used_count">%1$d/%2$d</string>
+    <string name="provider_limit_message">मुफ़्त प्लान में %1$d तक चालू सेवाएँ शामिल हैं। एक को संग्रहित करें, या असीमित सेवाओं के लिए Pro लें।</string>
+    <string name="provider_add_title">सेवा जोड़ें</string>
+    <string name="provider_edit_title">सेवा बदलें</string>
+    <string name="provider_save">सेव करें</string>
+    <string name="provider_close">बंद करें</string>
+    <string name="provider_section_type">प्रकार</string>
+    <string name="provider_section_billing">बिल कैसे बनेगा?</string>
+    <string name="provider_section_schedule">आने के दिन</string>
+    <string name="provider_type_milk">दूध</string>
+    <string name="provider_type_maid">कामवाली</string>
+    <string name="provider_type_newspaper">अख़बार</string>
+    <string name="provider_type_water_can">पानी की केन</string>
+    <string name="provider_type_cook">रसोइया</string>
+    <string name="provider_type_driver">ड्राइवर</string>
+    <string name="provider_type_other">अन्य</string>
+    <string name="provider_name">नाम</string>
+    <string name="provider_name_required">नाम लिखें</string>
+    <string name="billing_per_unit">प्रति इकाई</string>
+    <string name="billing_per_visit">प्रति फेरा</string>
+    <string name="billing_monthly">मासिक</string>
+    <string name="provider_unit">इकाई</string>
+    <string name="provider_default_qty">रोज़ की सामान्य मात्रा</string>
+    <string name="provider_qty_invalid">0 से अधिक मात्रा लिखें</string>
+    <string name="provider_rate">दर</string>
+    <string name="provider_monthly_amount">मासिक राशि</string>
+    <string name="provider_rate_invalid">0 से अधिक राशि लिखें</string>
+    <string name="provider_paid_leaves">महीने में सवेतन छुट्टियाँ</string>
+    <string name="provider_leaves_invalid">0 या अधिक लिखें</string>
+    <string name="provider_schedule_hint">जिन दिनों वे आते हैं उन्हें चालू करें। कोई दिन न चुनें तो यह माँग पर है: हर डिलीवरी आप खुद दर्ज करते हैं।</string>
+    <string name="provider_start_date">बिल शुरू होने की तारीख़</string>
+    <string name="provider_phone">फ़ोन (वैकल्पिक)</string>
+    <string name="provider_phone_hint">हाथ से लिखा गया। आपकी संपर्क सूची से कुछ नहीं पढ़ा जाता।</string>
+    <string name="provider_notes">टिप्पणी (वैकल्पिक)</string>
+    <string name="provider_pick_date">तारीख़ चुनें</string>
+    <string name="provider_ok">ठीक है</string>
+    <string name="provider_change">बदलें</string>
+    <string name="currency_symbol">₹</string>
+    <string name="providers_rate_per_unit">%1$s/%2$s</string>
+    <string name="providers_rate_monthly">%1$s/माह</string>
+    <string name="providers_subtitle">%1$s · %2$s · %3$s</string>
+    <string name="providers_archived_on">%1$s · %2$s को संग्रहित</string>
+    <string name="providers_add_icon">सेवा जोड़ें</string>
+    <string name="schedule_daily">रोज़</string>
+    <string name="schedule_on_demand">माँग पर</string>
+    <string name="schedule_range">%1$s–%2$s</string>
+    <string name="schedule_list_separator">, </string>
+    <string name="day_short_mon">सोम</string>
+    <string name="day_short_tue">मंगल</string>
+    <string name="day_short_wed">बुध</string>
+    <string name="day_short_thu">गुरु</string>
+    <string name="day_short_fri">शुक्र</string>
+    <string name="day_short_sat">शनि</string>
+    <string name="day_short_sun">रवि</string>
+    <string name="provider_rate_per_unit">प्रति %1$s</string>
+    <string name="provider_rate_per_visit">प्रति फेरा</string>
+    <string name="provider_rate_per_month">प्रति माह</string>
+    <string name="provider_qty_decrease">मात्रा घटाएँ</string>
+    <string name="provider_qty_increase">मात्रा बढ़ाएँ</string>
+    <string name="rate_change_title_salary">नया वेतन कब से?</string>
+    <string name="rate_change_title_rate">नई दर कब से?</string>
+    <string name="rate_change_helper_salary">%1$s का मासिक वेतन बदल रहा है। इस तारीख़ से पहले के महीनों में पुरानी राशि रहेगी।</string>
+    <string name="rate_change_helper_rate">%1$s की दर बदल रही है। इस तारीख़ से पहले के दिनों में पुरानी दर रहेगी।</string>
+    <string name="rate_change_field_label">लागू होने की तारीख़</string>
+    <string name="rate_change_old_new">%1$s से %2$s</string>
+    <string name="provider_archive">संग्रहित करें</string>
+    <string name="provider_archive_title">इस सेवा को संग्रहित करें?</string>
+    <string name="provider_archive_message">%1$s संग्रहित में चली जाएगी और एक जगह खाली होगी। पुराने महीने और बकाया सुरक्षित रहेंगे।</string>
+    <string name="provider_delete">हटाएँ</string>
+    <string name="provider_delete_title">इस सेवा को हटाएँ?</string>
+    <string name="provider_delete_message">इससे %1$s और उनकी सभी दरें, हाज़िरी और भुगतान हमेशा के लिए हट जाएँगे। इसे वापस नहीं किया जा सकता।</string>
+    <string name="day_mon">सोमवार</string>
+    <string name="day_tue">मंगलवार</string>
+    <string name="day_wed">बुधवार</string>
+    <string name="day_thu">गुरुवार</string>
+    <string name="day_fri">शुक्रवार</string>
+    <string name="day_sat">शनिवार</string>
+    <string name="day_sun">रविवार</string>
+    <string name="day_letter_mon">सो</string>
+    <string name="day_letter_tue">मं</string>
+    <string name="day_letter_wed">बु</string>
+    <string name="day_letter_thu">गु</string>
+    <string name="day_letter_fri">शु</string>
+    <string name="day_letter_sat">श</string>
+    <string name="day_letter_sun">र</string>
+    <string name="today_label_today">आज · %1$s</string>
+    <string name="today_pick_date">तारीख़ चुनें</string>
+    <string name="today_more">और विकल्प</string>
+    <string name="today_add_extra">अतिरिक्त डिलीवरी जोड़ें</string>
+    <string name="today_extra_title">अतिरिक्त डिलीवरी किससे…</string>
+    <string name="today_of_marked">%1$d में से दर्ज</string>
+    <plurals name="today_changes">
+        <item quantity="one">आज %1$d बदलाव</item>
+        <item quantity="other">आज %1$d बदलाव</item>
+    </plurals>
+    <string name="today_hint">डिफ़ॉल्ट रूप से हाज़िर। सिर्फ़ जो बदला है उसे दबाएँ।</string>
+    <string name="today_scheduled_today">आज %1$d तय हैं</string>
+    <string name="today_scheduled_day">इस दिन %1$d</string>
+    <string name="today_nothing_scheduled">इस दिन कुछ तय नहीं है। अतिरिक्त डिलीवरी जोड़ने के लिए मेनू इस्तेमाल करें।</string>
+    <string name="today_row_subtitle">%1$s · %2$s</string>
+    <string name="today_edit_qty">मात्रा बदलें</string>
+    <string name="today_note">टिप्पणी (वैकल्पिक)</string>
+    <string name="today_reset">रीसेट</string>
+    <string name="status_present">हाज़िर</string>
+    <string name="status_delivered">पहुँचाया</string>
+    <string name="status_absent">गैरहाज़िर</string>
+    <string name="status_skipped">छूटा</string>
+    <string name="status_half">आधा दिन</string>
+    <string name="status_extra">अतिरिक्त</string>
+    <string name="today_empty_title">आपके घर में कौन-कौन सेवा देता है?</string>
+    <string name="today_empty_body">अपना दूधवाला, कामवाली या अख़बार जोड़ें। आप सिर्फ़ वही दिन दबाते हैं जब कुछ बदला हो, और महीने का बिल अपने आप जुड़ जाता है।</string>
+    <string name="today_preset_milk">रोज़ के लीटर × दर</string>
+    <string name="today_preset_maid">सवेतन छुट्टियों सहित वेतन</string>
+    <string name="today_preset_newspaper">रोज़ की प्रतियाँ × दर</string>
+    <string name="providers_more">और विकल्प</string>
+    <string name="providers_show_archived">संग्रहित दिखाएँ</string>
+    <string name="providers_hide_archived">संग्रहित छिपाएँ</string>
+
+    <!-- Provider Month -->
+    <string name="month_back">वापस</string>
+    <string name="month_edit_provider">सेवा बदलें</string>
+    <string name="month_prev">पिछला महीना</string>
+    <string name="month_next">अगला महीना</string>
+    <string name="month_total_due_so_far">कुल बकाया · %1$s अब तक</string>
+    <string name="month_total_due">कुल बकाया · %1$s</string>
+    <string name="month_breakdown">इस महीने %1$s + पिछला बकाया %2$s (%3$s)</string>
+    <string name="month_breakdown_credit">इस महीने %1$s − पहले की जमा राशि %2$s</string>
+    <string name="month_breakdown_no_previous">इस महीने %1$s</string>
+    <string name="month_days_delivered">डिलीवरी के दिन</string>
+    <string name="month_days_of">/ %1$d</string>
+    <string name="month_total_qty">कुल %1$s</string>
+    <string name="month_absences">गैरहाज़िरी</string>
+    <string name="month_paid_leaves">इस्तेमाल हुई सवेतन छुट्टियाँ</string>
+    <string name="month_paid_leaves_of">%2$d में से %1$s</string>
+    <string name="month_legend_delivered">✓ पहुँचाया</string>
+    <string name="month_legend_present">✓ हाज़िर</string>
+    <string name="month_legend_skipped">✗ छूटा</string>
+    <string name="month_legend_half">½ आधा दिन</string>
+    <string name="month_legend_changed">बदली मात्रा</string>
+    <string name="month_legend_extra">+ अतिरिक्त (तय दिन के अलावा)</string>
+    <string name="month_bill_share">बिल / शेयर</string>
+    <string name="month_mark_paid">चुकता दर्ज करें</string>
+    <string name="month_update_payment">भुगतान बदलें</string>
+    <string name="month_cell_before_start">बिल शुरू होने से पहले</string>
+    <string name="month_cell_future">आने वाला दिन</string>
+    <string name="month_cell_not_scheduled">तय नहीं</string>
+    <string name="month_cell_edit">यह दिन बदलें</string>
+    <string name="month_not_found">यह सेवा अब मौजूद नहीं है।</string>
+
+    <!-- Day sheet -->
+    <string name="daysheet_usual">सामान्य %1$s · %2$s के कदम</string>
+    <string name="daysheet_reset">सामान्य पर लौटें</string>
+
+    <!-- Bill preview -->
+    <string name="bill_title">बिल · %1$s</string>
+    <string name="bill_more">और विकल्प</string>
+    <string name="bill_hero_label">%1$s · %2$s</string>
+    <string name="bill_total_due_range">कुल बकाया · %1$s</string>
+    <string name="bill_donut_of_days">%1$d दिनों में से</string>
+    <string name="bill_chip_delivered">%1$d पहुँचाए</string>
+    <string name="bill_chip_present">%1$d हाज़िर</string>
+    <string name="bill_chip_skipped">%1$d छूटे</string>
+    <string name="bill_chip_qty">%1$s %2$s</string>
+    <string name="bill_line_segment_unit">%1$s · %2$s × %3$s</string>
+    <string name="bill_line_segment_visit">%1$s · %2$s फेरे × %3$s</string>
+    <string name="bill_line_segment_monthly">%1$s · %3$s/माह में से %2$s दिन</string>
+    <string name="bill_line_absences">गैरहाज़िरी</string>
+    <string name="bill_line_paid_leaves">इस्तेमाल हुई सवेतन छुट्टियाँ</string>
+    <string name="bill_line_deduction">%1$s बिना वेतन गैरहाज़िर दिनों की कटौती</string>
+    <string name="bill_month_total">%1$s का कुल</string>
+    <string name="bill_previous_balance">पिछला बकाया</string>
+    <string name="bill_due">कुल बकाया</string>
+    <string name="bill_paid_stamp">%1$s को चुकता · %2$s</string>
+    <string name="bill_share_header">बिल शेयर करें</string>
+    <string name="bill_share_whatsapp">WhatsApp पर भेजें</string>
+    <string name="bill_share_text">टेक्स्ट</string>
+    <string name="bill_share_chooser">बिल शेयर करें</string>
+    <string name="bill_share_failed">शेयर विकल्प नहीं खुल पाया।</string>
+    <string name="bill_nothing_yet">इस महीने का बिल बनाने के लिए अभी कुछ नहीं है।</string>
+
+    <!-- Mark paid -->
+    <string name="paid_title">%1$s को चुकता दर्ज करें</string>
+    <string name="paid_due_line">%1$s का कुल बकाया %2$s है।</string>
+    <string name="paid_amount_label">चुकाई गई राशि</string>
+    <string name="paid_invalid">सही राशि लिखें</string>
+    <string name="paid_short">%1$s कम है। यह %2$s के बिल में जुड़ जाएगा।</string>
+    <string name="paid_extra">%1$s ज़्यादा है। यह %2$s के बिल से घट जाएगा।</string>
+    <string name="paid_date_label">चुकाने की तारीख़</string>
+    <string name="paid_note_label">टिप्पणी (वैकल्पिक)</string>
+    <string name="paid_disclaimer">यह सिर्फ़ आपके लिए एक रिकॉर्ड है। ऐप के ज़रिए कोई पैसा नहीं भेजा जाता।</string>
+    <string name="paid_pick_date">भुगतान की तारीख़ चुनें</string>
+
+    <!-- Bill text (shared as plain text) -->
+    <string name="billtext_title">%1$s · %2$s</string>
+    <string name="billtext_segment_unit">%1$s: %2$s × %3$s = %4$s</string>
+    <string name="billtext_segment_visit">%1$s: %2$s फेरे × %3$s = %4$s</string>
+    <string name="billtext_segment_monthly">%1$s: %3$s/माह में से %2$s दिन = %4$s</string>
+    <string name="billtext_absences">गैरहाज़िरी: %1$s</string>
+    <string name="billtext_paid_leaves">इस्तेमाल हुई सवेतन छुट्टियाँ: %1$s</string>
+    <string name="billtext_paid_leaves_amount">इस्तेमाल हुई सवेतन छुट्टियाँ: %1$s = %2$s</string>
+    <string name="billtext_deduction">कटौती (%1$s बिना वेतन गैरहाज़िर दिन): %2$s</string>
+    <string name="billtext_total">%1$s का कुल: %2$s</string>
+    <string name="billtext_previous">पिछला बकाया: %1$s</string>
+    <string name="billtext_due">कुल बकाया: %1$s</string>
+    <string name="billtext_paid_on">%1$s को चुकता: %2$s</string>
+    <string name="billtext_balance_left">आगे जोड़ा गया बकाया: %1$s</string>
+    <string name="billtext_footer">Ghar Khata से बनाया गया</string>
+    <!-- Pro sheet -->
+    <string name="pro_title">Ghar Khata Pro</string>
+    <string name="pro_price_note">एक बार का भुगतान · कोई सब्सक्रिप्शन नहीं</string>
+    <string name="pro_reason_provider_limit">आप सभी %1$d मुफ़्त सेवाएँ इस्तेमाल कर चुके हैं।</string>
+    <string name="pro_reason_bill_image">इमेज या PDF बिल Pro में शामिल है।</string>
+    <string name="pro_reason_csv">CSV एक्सपोर्ट Pro में शामिल है।</string>
+    <string name="pro_reason_year_summary">साल का सारांश Pro में शामिल है।</string>
+    <string name="pro_reason_general">एक बार के भुगतान से नीचे की सारी सुविधाएँ पाएँ।</string>
+    <string name="pro_benefit_providers">असीमित सेवाएँ</string>
+    <string name="pro_benefit_providers_note">(मुफ़्त: %1$d)</string>
+    <string name="pro_benefit_image">WhatsApp के लिए इमेज या PDF बिल</string>
+    <string name="pro_benefit_csv">हाज़िरी और बिलों का CSV एक्सपोर्ट</string>
+    <string name="pro_benefit_reminder">रोज़ \"आज दर्ज करें\" रिमाइंडर</string>
+    <string name="pro_benefit_year">हर सेवा के लिए साल का सारांश</string>
+    <string name="pro_always_free">हमेशा मुफ़्त: हाज़िरी दर्ज करना, दरें, सवेतन छुट्टियाँ, बकाया और बैकअप।</string>
+    <string name="pro_sheet_close">बंद करें</string>
+    <string name="pro_badge">Pro</string>
+
+    <!-- Day sheet ruler -->
+    <string name="daysheet_ruler">मात्रा का पैमाना। बदलने के लिए बगल में स्वाइप करें।</string>
+
+    <!-- Today: next bills -->
+    <string name="today_next_bills">अगले बिल · %1$s</string>
+    <string name="today_next_bills_desc">अगले बिल %1$s को बनेंगे। सेवाएँ खुलती हैं।</string>
+
+    <!-- Bill image / PDF -->
+    <string name="bill_share_image">इमेज</string>
+    <string name="bill_share_pdf">PDF</string>
+    <string name="bill_share_pro_header">PRO · इस रूप में शेयर करें</string>
+    <string name="bill_card_paid">चुकता</string>
+    <string name="bill_card_balance_forward">आगे जोड़ा गया बकाया</string>
+    <string name="bill_card_for">%1$s का बिल</string>
+    <string name="bill_card_period">%1$s</string>
+    <string name="bill_pdf_title">%1$s बिल %2$s</string>
+
+    <!-- Year summary -->
+    <string name="month_overflow">और विकल्प</string>
+    <string name="month_year_summary">साल का सारांश</string>
+    <string name="year_title">%1$s · %2$d</string>
+    <string name="year_total_billed">%1$d में बिल</string>
+    <string name="year_total_paid">चुकता</string>
+    <string name="year_outstanding">अभी बकाया</string>
+    <string name="year_months_header">महीने दर महीने</string>
+    <string name="year_prev">पिछला साल</string>
+    <string name="year_next">अगला साल</string>
+    <string name="year_days_delivered">%1$d दिन</string>
+    <string name="year_paid_amount">चुकता %1$s</string>
+    <string name="year_no_data">इस साल कुछ भी बिल नहीं हुआ।</string>
+    <string name="year_chart_desc">%2$d में %1$s के मासिक बिलों का बार चार्ट</string>
+
+    <!-- CSV -->
+    <string name="backup_export_csv_pro">हाज़िरी और बिल CSV में एक्सपोर्ट करें</string>
+    <string name="settings_pro_badge">Pro</string>
+
+    <!-- Reminder and language -->
+    <string name="settings_section_reminder">रिमाइंडर</string>
+    <string name="settings_reminder">रोज़ रिमाइंडर का समय</string>
+    <string name="settings_reminder_off">बंद</string>
+    <string name="settings_reminder_turn_off">बंद करें</string>
+    <string name="settings_reminder_save">तय करें</string>
+    <string name="settings_language">भाषा</string>
+    <string name="settings_language_value">%1$s (आपके फ़ोन की भाषा के अनुसार)</string>
+    <string name="pro_reason_reminder">रोज़ का रिमाइंडर Pro में शामिल है।</string>
+    <string name="reminder_channel_name">रोज़ का रिमाइंडर</string>
+    <string name="reminder_notification_title">आज दर्ज करें</string>
+    <string name="reminder_notification_text">सिर्फ़ वही दबाएँ जो आज बदला। बिल अपने आप जुड़ जाएगा।</string>
+</resources>
