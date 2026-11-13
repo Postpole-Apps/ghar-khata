@@ -37,11 +37,11 @@ fun rememberIsPro(viewModel: ProViewModel = hiltViewModel()): Boolean =
 fun ProBadge(modifier: Modifier = Modifier) {
     val gk = MaterialTheme.gharColors
     Row(
-        modifier.clip(CircleShape).background(gk.saffronContainer).padding(horizontal = 10.dp, vertical = 4.dp),
+        modifier.clip(CircleShape).background(gk.saffronContainer).padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Outlined.Lock, contentDescription = null, tint = gk.onSaffronContainer, modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(4.dp))
-        Text(stringResource(R.string.pro_badge), style = MaterialTheme.typography.labelLarge, color = gk.onSaffronContainer)
+        Text(stringResource(R.string.pro_badge), style = MaterialTheme.typography.labelLarge, color = gk.onSaffronContainer, maxLines = 1, softWrap = false)
     }
 }
