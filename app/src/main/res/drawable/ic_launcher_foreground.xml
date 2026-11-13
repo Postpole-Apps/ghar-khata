@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ghar Khata launcher icon, option A "Ghar Tick" (approved 13 Nov 2026). 108dp canvas; art inside the 66dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- House: polygon filled and stroked 7dp with round joins (rounded corners). -->
+    <path
+        android:fillColor="#FFCDEA2B"
+        android:strokeColor="#FFCDEA2B"
+        android:strokeWidth="7"
+        android:strokeLineJoin="round"
+        android:pathData="M54,33 L77,52 L72,52 L72,73 L36,73 L36,52 L31,52 Z" />
+    <!-- Tick -->
+    <path
+        android:strokeColor="#FF1E3527"
+        android:strokeWidth="6.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M44.5,61 L51,67.5 L63.5,55" />
+</vector>

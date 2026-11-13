@@ -1,6 +1,6 @@
 # Ghar Khata
 
-A household khata for milk, maid, newspaper and similar home services. Track deliveries and visits, and see what is owed. Works fully offline, with no ads and no accounts.
+A household khata for milk, maid, newspaper and similar home services. Track deliveries and visits, and see what is owed. Your data stays on your device, with no ads and no accounts.
 
 Package: `com.postpole.gharkhata`. This app was started from the Postpole Apps Android template (`Postpole-Apps/android-app-template`); see [docs/NEW_APP.md](docs/NEW_APP.md).
 
@@ -22,7 +22,7 @@ Requires JDK 21 and the Android SDK (`ANDROID_HOME` or `local.properties` with `
 `app/build.gradle.kts` signs the release build from `KEYSTORE_BASE64` (or `KEYSTORE_FILE`), `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` (environment or `local.properties`); the build is unsigned if absent. The release workflow lives in `ci-templates/release.yml` (signed AAB artifact on push to main; optional draft upload to the Play internal track via `workflow_dispatch`).
 
 ## Analytics and crash reporting (required)
-Google Analytics for Firebase (GA4) and Crashlytics are wired through the `Analytics` interface. Without `app/google-services.json` (git-ignored, supplied to CI as secret `GOOGLE_SERVICES_JSON`) the app builds with a no-op `Analytics`; with it, the google-services / crashlytics plugins apply automatically. Ad ID collection is intentionally left enabled for Google Ads. `privacy_policy_url` and `support_email` in `res/values/app_config.xml` are still placeholders.
+Google Analytics for Firebase (GA4) and Crashlytics are wired through the `Analytics` interface. Without `app/google-services.json` (git-ignored, supplied to CI as secret `GOOGLE_SERVICES_JSON`) the app builds with a no-op `Analytics`; with it, the google-services / crashlytics plugins apply automatically. Ad ID collection is intentionally left enabled for Google Ads. `privacy_policy_url` and `support_email` in `res/values/app_config.xml` are set to the real values.
 
 Events: `app_open`, `first_launch`, `screen_view`, `pro_screen_view`, `purchase_started`, `purchase` (value + currency), `purchase_restored`, `backup_exported`, `backup_imported`.
 

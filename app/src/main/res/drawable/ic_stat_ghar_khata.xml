@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ghar Khata notification small icon (status bar). Same art as ic_launcher_monochrome, scaled to 24dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?android:attr/colorControlNormal">
+    <group
+        android:scaleX="0.377"
+        android:scaleY="0.377"
+        android:translateX="-8.377"
+        android:translateY="-8">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M56.229,30.302 L79.229,49.302 A3.5,3.5 0 0 1 80.293,53.184 A3.5,3.5 0 0 1 77,55.5 L75.5,55.5 L75.5,73 A3.5,3.5 0 0 1 72,76.5 L36,76.5 A3.5,3.5 0 0 1 32.5,73 L32.5,55.5 L31,55.5 A3.5,3.5 0 0 1 27.707,53.184 A3.5,3.5 0 0 1 28.771,49.302 L51.771,30.302 A3.5,3.5 0 0 1 56.229,30.302 Z M46.798,58.702 L51,62.904 L61.202,52.702 A3.25,3.25 0 0 1 65.798,52.702 A3.25,3.25 0 0 1 65.798,57.298 L53.298,69.798 A3.25,3.25 0 0 1 48.702,69.798 L42.202,63.298 A3.25,3.25 0 0 1 42.202,58.702 A3.25,3.25 0 0 1 46.798,58.702 Z" />
+    </group>
+</vector>
