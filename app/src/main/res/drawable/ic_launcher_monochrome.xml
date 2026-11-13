@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ghar Khata launcher icon, option A "Ghar Tick" (approved 13 Nov 2026). 108dp canvas; art inside the 66dp safe zone. Monochrome layer for Android 13+ themed icons: house outline with the tick as an evenOdd knockout. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M56.229,30.302 L79.229,49.302 A3.5,3.5 0 0 1 80.293,53.184 A3.5,3.5 0 0 1 77,55.5 L75.5,55.5 L75.5,73 A3.5,3.5 0 0 1 72,76.5 L36,76.5 A3.5,3.5 0 0 1 32.5,73 L32.5,55.5 L31,55.5 A3.5,3.5 0 0 1 27.707,53.184 A3.5,3.5 0 0 1 28.771,49.302 L51.771,30.302 A3.5,3.5 0 0 1 56.229,30.302 Z M46.798,58.702 L51,62.904 L61.202,52.702 A3.25,3.25 0 0 1 65.798,52.702 A3.25,3.25 0 0 1 65.798,57.298 L53.298,69.798 A3.25,3.25 0 0 1 48.702,69.798 L42.202,63.298 A3.25,3.25 0 0 1 42.202,58.702 A3.25,3.25 0 0 1 46.798,58.702 Z" />
+</vector>
