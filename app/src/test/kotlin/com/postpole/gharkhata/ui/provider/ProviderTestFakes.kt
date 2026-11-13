@@ -70,13 +70,23 @@ class FakeRateDao : RateChangeDao {
 }
 
 class FakeMarkDao : DayMarkDao {
-    override fun observeForDay(epochDay: Long): Flow<List<DayMarkEntity>> = MutableStateFlow(emptyList())
-    override fun observeRange(providerId: Long, fromDay: Long, toDay: Long): Flow<List<DayMarkEntity>> =
-        MutableStateFlow(emptyList())
+    val all = MutableStateFlow<List<DayMarkEntity>>(emptyList())
 
-    override suspend fun upsert(mark: DayMarkEntity) = Unit
-    override suspend fun clear(providerId: Long, epochDay: Long) = Unit
-    override suspend fun getAll(): List<DayMarkEntity> = emptyList()
+    override fun observeForDay(epochDay: Long): Flow<List<DayMarkEntity>> =
+        all.map { l -> l.filter { it.epochDay == epochDay } }
+
+    override fun observeRange(providerId: Long, fromDay: Long, toDay: Long): Flow<List<DayMarkEntity>> =
+        all.map { l -> l.filter { it.providerId == providerId && it.epochDay in fromDay..toDay } }
+
+    override suspend fun upsert(mark: DayMarkEntity) {
+        all.value = all.value.filterNot { it.providerId == mark.providerId && it.epochDay == mark.epochDay } + mark
+    }
+
+    override suspend fun clear(providerId: Long, epochDay: Long) {
+        all.value = all.value.filterNot { it.providerId == providerId && it.epochDay == epochDay }
+    }
+
+    override suspend fun getAll(): List<DayMarkEntity> = all.value
     override suspend fun insertAll(marks: List<DayMarkEntity>) = Unit
     override suspend fun deleteAll() = Unit
 }
@@ -107,5 +117,6 @@ class RecordingAnalytics : Analytics {
 class TestDb {
     val rates = FakeRateDao()
     val providers = FakeProviderDao(rates)
-    val repository = ProviderRepository(providers, rates, FakeMarkDao(), FakeSettlementDao())
+    val marks = FakeMarkDao()
+    val repository = ProviderRepository(providers, rates, marks, FakeSettlementDao())
 }

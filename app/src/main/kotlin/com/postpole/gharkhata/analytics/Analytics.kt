@@ -13,6 +13,7 @@ object AnalyticsEvents {
     const val BACKUP_IMPORTED = "backup_imported"
     const val PROVIDER_ADDED = "provider_added"
     const val PROVIDER_LIMIT_REACHED = "provider_limit_reached"
+    const val DAY_MARKED = "day_marked"
 }
 
 object AnalyticsParams {
@@ -23,6 +24,7 @@ object AnalyticsParams {
     const val ITEM_COUNT = "item_count"
     const val FORMAT = "format"
     const val PROVIDER_TYPE = "provider_type"
+    const val STATUS = "status"
 }
 
 /**

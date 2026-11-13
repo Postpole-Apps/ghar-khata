@@ -19,7 +19,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.PersonAdd
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.IconButton
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +63,7 @@ import java.util.Locale
 fun ProviderListScreen(
     onOpenProvider: (Long) -> Unit,
     onAddProvider: () -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: ProviderListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -67,6 +73,7 @@ fun ProviderListScreen(
         onOpenProvider = onOpenProvider,
         onAddProvider = { if (state.canAdd) onAddProvider() else showPro = true },
         onSeePro = { showPro = true },
+        onOpenSettings = onOpenSettings,
     )
     if (showPro) ProSheet(onDismiss = { showPro = false })
 }
@@ -78,21 +85,47 @@ internal fun ProviderListContent(
     onOpenProvider: (Long) -> Unit,
     onAddProvider: () -> Unit,
     onSeePro: () -> Unit,
+    onOpenSettings: () -> Unit = {},
+    showArchivedInitially: Boolean = true,
     today: LocalDate = LocalDate.now(),
 ) {
     val gk = MaterialTheme.gharColors
+    var showArchived by remember { mutableStateOf(showArchivedInitially) }
+    var menu by remember { mutableStateOf(false) }
 
     Column(
         Modifier.fillMaxSize()
             .background(Brush.verticalGradient(listOf(gk.hero, gk.heroVariant)))
             .statusBarsPadding(),
     ) {
-        Text(
-            stringResource(R.string.providers_title),
-            style = MaterialTheme.typography.headlineMedium,
-            color = gk.onHero,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-        )
+        Row(
+            Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(R.string.providers_title),
+                style = MaterialTheme.typography.headlineMedium,
+                color = gk.onHero,
+                modifier = Modifier.weight(1f),
+            )
+            Box {
+                IconButton(onClick = { menu = true }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.providers_more), tint = gk.onHero)
+                }
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(stringResource(if (showArchived) R.string.providers_hide_archived else R.string.providers_show_archived))
+                        },
+                        onClick = { showArchived = !showArchived; menu = false },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.nav_settings)) },
+                        onClick = { menu = false; onOpenSettings() },
+                    )
+                }
+            }
+        }
         if (!state.isPro) {
             FreeLimitCard(used = state.active.size, onSeePro = onSeePro)
         }
@@ -123,7 +156,7 @@ internal fun ProviderListContent(
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (state.active.isEmpty() && state.archived.isEmpty()) {
+                if (state.active.isEmpty() && (!showArchived || state.archived.isEmpty())) {
                     item {
                         Text(
                             stringResource(R.string.providers_empty),
@@ -135,7 +168,7 @@ internal fun ProviderListContent(
                 items(state.active.size, key = { state.active[it].provider.id }) { i ->
                     ActiveRow(state.active[i], style = i % 3, today = today, onClick = { onOpenProvider(state.active[i].provider.id) })
                 }
-                if (state.archived.isNotEmpty()) {
+                if (showArchived && state.archived.isNotEmpty()) {
                     item(key = "archived-header") {
                         Text(
                             stringResource(R.string.providers_archived_header),
@@ -221,6 +254,7 @@ private fun ActiveRow(row: ProviderRow, style: Int, today: LocalDate, onClick: (
                 Text(Money.format(row.monthTotalPaise), style = GharNumerals.S, color = fg)
                 Text(stringResource(R.string.providers_this_month), style = MaterialTheme.typography.bodySmall, color = fg.copy(alpha = 0.8f))
             }
+            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = fg.copy(alpha = 0.8f))
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
           Text(
@@ -292,5 +326,6 @@ private fun ArchivedRow(p: ProviderEntity, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

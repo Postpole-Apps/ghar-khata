@@ -65,7 +65,10 @@ class ProviderEditViewModel @Inject constructor(
     val isNew: Boolean get() = providerId == NEW_PROVIDER_ID
 
     private val _form = MutableStateFlow(
-        ProviderForm(startEpochDay = LocalDate.now().toEpochDay()).applyPreset(ProviderType.MILK),
+        ProviderForm(startEpochDay = LocalDate.now().toEpochDay()).applyPreset(
+            savedStateHandle.get<String>("type")?.let { t -> ProviderType.entries.firstOrNull { it.name == t } }
+                ?: ProviderType.MILK,
+        ),
     )
     val form: StateFlow<ProviderForm> = _form.asStateFlow()
 

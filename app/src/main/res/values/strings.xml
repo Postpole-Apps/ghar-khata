@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Ghar Khata</string>
-    <string name="nav_home">Home</string>
     <string name="nav_settings">Settings</string>
     <string name="nav_pro">Pro</string>
     <string name="back">Back</string>
     <string name="cancel">Cancel</string>
-    <string name="empty_providers">No providers yet.</string>
     <string name="pro_features_title">Unlock everything</string>
     <string name="pro_feature_1">Feature one (placeholder)</string>
     <string name="pro_feature_2">Feature two (placeholder)</string>
@@ -152,5 +150,35 @@
     <string name="day_letter_fri">F</string>
     <string name="day_letter_sat">S</string>
     <string name="day_letter_sun">S</string>
-    <string name="today_placeholder">Today arrives soon.</string>
+    <string name="today_label_today">TODAY · %1$s</string>
+    <string name="today_pick_date">Pick a date</string>
+    <string name="today_more">More options</string>
+    <string name="today_add_extra">Add extra delivery</string>
+    <string name="today_extra_title">Extra delivery from…</string>
+    <string name="today_of_marked">of %1$d marked</string>
+    <plurals name="today_changes">
+        <item quantity="one">%1$d change</item>
+        <item quantity="other">%1$d changes</item>
+    </plurals>
+    <string name="today_hint">Present by default. Tap only what changed.</string>
+    <string name="today_scheduled_today">%1$d scheduled today</string>
+    <string name="today_scheduled_day">%1$d on this day</string>
+    <string name="today_nothing_scheduled">Nothing scheduled for this day. Use the menu to add an extra delivery.</string>
+    <string name="today_row_subtitle">%1$s · %2$s</string>
+    <string name="today_edit_qty">Change quantity</string>
+    <string name="today_note">Note (optional)</string>
+    <string name="today_reset">Reset</string>
+    <string name="status_present">Present</string>
+    <string name="status_delivered">Delivered</string>
+    <string name="status_absent">Absent</string>
+    <string name="status_half">Half day</string>
+    <string name="status_extra">Extra</string>
+    <string name="today_empty_title">Who serves your home?</string>
+    <string name="today_empty_body">Add your milkman, maid or newspaper. You only tap the days something changes, and the month\'s bill adds itself up.</string>
+    <string name="today_preset_milk">Litres per day × rate</string>
+    <string name="today_preset_maid">Salary with paid leaves</string>
+    <string name="today_preset_newspaper">Copies per day × rate</string>
+    <string name="providers_more">More options</string>
+    <string name="providers_show_archived">Show archived</string>
+    <string name="providers_hide_archived">Hide archived</string>
 </resources>
