@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Per-app values: replace these when creating an app from the template. -->
 <resources>
-    <string name="privacy_policy_url" translatable="false">https://example.com/privacy</string>
-    <string name="support_email" translatable="false">support@example.com</string>
+    <string name="privacy_policy_url" translatable="false">https://same-route-6a0.notion.site/Ghar-Khata-Privacy-Policy-4171cd7566c781339e92edc3d71d52fd</string>
+    <string name="support_email" translatable="false">admin@postpole.com</string>
 </resources>

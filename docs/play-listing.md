@@ -1,7 +1,7 @@
 # Play Store listing (draft)
 
 ## Title (29 chars)
-Ghar Khata: Milk & Maid Diary
+Ghar Khata - Milk & Maid Bill
 
 ## Short description (69 chars)
 Mark milk, maid & newspaper days. Auto monthly bill. Offline, no ads.

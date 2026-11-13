@@ -577,16 +577,17 @@ internal fun BigButton(
 ) {
     Row(
         modifier.heightIn(min = 56.dp).clip(CircleShape).background(container)
-            .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 16.dp),
+            .clickable(role = Role.Button, onClick = onClick).padding(horizontal = if (badge) 12.dp else 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
         Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(8.dp))
-        Text(text, style = MaterialTheme.typography.labelLarge, color = content, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(text, style = MaterialTheme.typography.labelLarge, color = content, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false))
         if (badge) {
-            Spacer(Modifier.width(8.dp))
-            ProBadge()
+            Spacer(Modifier.width(6.dp))
+            ProBadge(showLock = false)
         }
     }
 }
