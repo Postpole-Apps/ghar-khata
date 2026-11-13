@@ -42,6 +42,7 @@ class SettingsViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val backup: BackupRepository,
     private val analytics: Analytics,
+    private val reminders: com.postpole.gharkhata.reminder.ReminderController,
 ) : ViewModel() {
     val isPro: StateFlow<Boolean> = billing.isPro
 
@@ -50,6 +51,9 @@ class SettingsViewModel @Inject constructor(
     val dynamicColor: StateFlow<Boolean> = settings.dynamicColor
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
     val defaultCurrency: StateFlow<String?> = settings.defaultCurrency
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val reminderMinutes: StateFlow<Int?> = settings.reminderMinutes
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val _events = Channel<SettingsEvent>(Channel.BUFFERED)
@@ -65,6 +69,15 @@ class SettingsViewModel @Inject constructor(
 
     fun setDefaultCurrency(code: String) {
         viewModelScope.launch { settings.setDefaultCurrency(code) }
+    }
+
+    /** Pro only; a non-Pro call changes nothing (the screen routes those users to the Pro sheet). */
+    fun setReminder(minutesOfDay: Int) {
+        viewModelScope.launch { reminders.enable(minutesOfDay) }
+    }
+
+    fun clearReminder() {
+        viewModelScope.launch { reminders.disable() }
     }
 
     fun restore() {

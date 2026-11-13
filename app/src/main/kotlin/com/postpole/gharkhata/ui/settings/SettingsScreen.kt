@@ -28,6 +28,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,6 +63,7 @@ fun SettingsScreen(
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val dynamicColor by viewModel.dynamicColor.collectAsStateWithLifecycle()
     val currency by viewModel.defaultCurrency.collectAsStateWithLifecycle()
+    val reminderMinutes by viewModel.reminderMinutes.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val resolver = context.contentResolver
     val snackbarHostState = remember { SnackbarHostState() }
@@ -68,6 +71,8 @@ fun SettingsScreen(
     var showPro by rememberSaveable { mutableStateOf<String?>(null) }
     var showTheme by rememberSaveable { mutableStateOf(false) }
     var showCurrency by rememberSaveable { mutableStateOf(false) }
+    var showReminderPicker by rememberSaveable { mutableStateOf(false) }
+    var pendingReminder by rememberSaveable { mutableStateOf<Int?>(null) }
     var pendingImport by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Storage Access Framework: the system picker grants access to the one chosen file, so no
@@ -81,6 +86,27 @@ fun SettingsScreen(
     val pickImport = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> pendingImport = uri?.toString() }
+
+    // Android 13+: ask for the notification permission when the user turns the reminder on. The
+    // reminder is saved either way; without permission the worker simply posts nothing.
+    val askNotifications = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { _ ->
+        pendingReminder?.let(viewModel::setReminder)
+        pendingReminder = null
+    }
+    fun confirmReminder(minutes: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.POST_NOTIFICATIONS,
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingReminder = minutes
+            askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            viewModel.setReminder(minutes)
+        }
+    }
 
     val messages = rememberEventMessages()
     LaunchedEffect(viewModel) {
@@ -122,6 +148,39 @@ fun SettingsScreen(
                 headlineContent = { Text(stringResource(R.string.settings_currency)) },
                 supportingContent = { Text(currency?.let(::currencyLabel) ?: "") },
                 modifier = Modifier.clickable { showCurrency = true },
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_language)) },
+                supportingContent = {
+                    Text(
+                        stringResource(
+                            R.string.settings_language_value,
+                            java.util.Locale.getDefault().getDisplayLanguage(java.util.Locale.getDefault()),
+                        ),
+                    )
+                },
+            )
+            HorizontalDivider()
+
+            SectionHeader(R.string.settings_section_reminder)
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_reminder)) },
+                supportingContent = {
+                    Text(
+                        reminderMinutes?.let { formatTime(context, it) }
+                            ?: stringResource(R.string.settings_reminder_off),
+                    )
+                },
+                trailingContent = {
+                    if (!isPro) {
+                        ProBadge()
+                    } else if (reminderMinutes != null) {
+                        TextButton(onClick = viewModel::clearReminder) { Text(stringResource(R.string.settings_reminder_turn_off)) }
+                    }
+                },
+                modifier = Modifier.clickable {
+                    if (isPro) showReminderPicker = true else showPro = "reminder"
+                },
             )
             HorizontalDivider()
 
@@ -194,7 +253,36 @@ fun SettingsScreen(
     showPro?.let { why ->
         ProSheet(
             onDismiss = { showPro = null },
-            reason = if (why == "csv") ProReason.CSV else ProReason.GENERAL,
+            reason = when (why) {
+                "csv" -> ProReason.CSV
+                "reminder" -> ProReason.REMINDER
+                else -> ProReason.GENERAL
+            },
+        )
+    }
+
+    if (showReminderPicker) {
+        val initial = reminderMinutes ?: (8 * 60)
+        val pickerState = rememberTimePickerState(
+            initialHour = initial / 60,
+            initialMinute = initial % 60,
+            is24Hour = android.text.format.DateFormat.is24HourFormat(context),
+        )
+        AlertDialog(
+            onDismissRequest = { showReminderPicker = false },
+            title = { Text(stringResource(R.string.settings_reminder)) },
+            text = { TimePicker(state = pickerState) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showReminderPicker = false
+                        confirmReminder(pickerState.hour * 60 + pickerState.minute)
+                    },
+                ) { Text(stringResource(R.string.settings_reminder_save)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReminderPicker = false }) { Text(stringResource(R.string.cancel)) }
+            },
         )
     }
 
@@ -296,6 +384,14 @@ private fun ThemeMode.label(): Int = when (this) {
 
 private fun currencyLabel(code: String): String =
     runCatching { "$code — ${Currency.getInstance(code).displayName}" }.getOrDefault(code)
+
+private fun formatTime(context: Context, minutesOfDay: Int): String =
+    android.text.format.DateFormat.getTimeFormat(context).format(
+        java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, minutesOfDay / 60)
+            set(java.util.Calendar.MINUTE, minutesOfDay % 60)
+        }.time,
+    )
 
 private fun backupFileName(extension: String): String {
     val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
