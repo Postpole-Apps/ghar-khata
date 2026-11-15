@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.postpole.gharkhata.R
+import com.postpole.gharkhata.ads.SuppressBanner
 import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.data.ProviderEntity
 import com.postpole.gharkhata.domain.BillLine
@@ -430,6 +431,7 @@ internal fun MarkPaidDialog(
     /** Draw the dialog card in place instead of in a window (the screenshot tests can't capture windows). */
     inline: Boolean = false,
 ) {
+    SuppressBanner()
     val gk = MaterialTheme.gharColors
     val locale = Locale.getDefault()
     var amount by remember { mutableStateOf(plainAmount(initialPaidPaise ?: duePaise.coerceAtLeast(0))) }

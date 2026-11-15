@@ -61,6 +61,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.postpole.gharkhata.R
+import com.postpole.gharkhata.ads.SuppressBanner
 import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.data.DayMarkEntity
 import com.postpole.gharkhata.data.DayStatus
@@ -89,6 +90,7 @@ fun DayMarkSheet(
     onReset: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    SuppressBanner() // never an ad next to the day cells while marking a day
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         shape = GharShapesExtra.SheetTop,

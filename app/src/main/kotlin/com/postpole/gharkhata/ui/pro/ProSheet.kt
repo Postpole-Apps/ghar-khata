@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.postpole.gharkhata.R
+import com.postpole.gharkhata.ads.SuppressBanner
 import com.postpole.gharkhata.billing.BillingMessage
 import com.postpole.gharkhata.ui.provider.BadgeShape
 import com.postpole.gharkhata.ui.provider.FREE_ACTIVE_PROVIDER_LIMIT
@@ -84,6 +85,7 @@ fun ProSheet(
     reason: ProReason = ProReason.PROVIDER_LIMIT,
     viewModel: ProViewModel = hiltViewModel(),
 ) {
+    SuppressBanner() // never an ad during a purchase flow
     val snackbarHostState = remember { SnackbarHostState() }
     val purchaseError = stringResource(R.string.pro_error_purchase)
     val launchError = stringResource(R.string.pro_error_launch)

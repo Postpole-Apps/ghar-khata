@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.postpole.gharkhata.ads.ConsentManager
 import com.postpole.gharkhata.analytics.Analytics
 import com.postpole.gharkhata.analytics.AnalyticsEvents
 import com.postpole.gharkhata.analytics.AnalyticsParams
@@ -43,8 +44,14 @@ class SettingsViewModel @Inject constructor(
     private val backup: BackupRepository,
     private val analytics: Analytics,
     private val reminders: com.postpole.gharkhata.reminder.ReminderController,
+    private val consent: ConsentManager,
 ) : ViewModel() {
     val isPro: StateFlow<Boolean> = billing.isPro
+
+    /** True when UMP requires a "Privacy options" entry point for this user. */
+    val privacyOptionsRequired: StateFlow<Boolean> = consent.privacyOptionsRequired
+
+    fun showPrivacyOptions(activity: android.app.Activity) = consent.showPrivacyOptions(activity)
 
     val themeMode: StateFlow<ThemeMode> = settings.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.SYSTEM)

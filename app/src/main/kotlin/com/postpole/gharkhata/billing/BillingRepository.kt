@@ -46,9 +46,10 @@ class BillingRepository(
     @Volatile
     private var loadedProduct: ProductResult.Loaded? = null
 
-    val isPro: StateFlow<Boolean> = dataStore.data
-        .map { it[IS_PRO] ?: false }
-        .stateIn(scope, SharingStarted.Eagerly, false)
+    /** Persisted entitlement as a cold flow: unlike [isPro] its first value is the stored one, never a placeholder. */
+    val isProStream: Flow<Boolean> = dataStore.data.map { it[IS_PRO] ?: false }
+
+    val isPro: StateFlow<Boolean> = isProStream.stateIn(scope, SharingStarted.Eagerly, false)
 
     /** Reads the persisted entitlement directly, so callers at startup never see [isPro]'s initial `false`. */
     suspend fun isProStored(): Boolean = dataStore.data.first()[IS_PRO] ?: false

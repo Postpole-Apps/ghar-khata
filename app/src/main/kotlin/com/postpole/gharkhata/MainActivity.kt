@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.postpole.gharkhata.ads.AdsManager
 import com.postpole.gharkhata.analytics.Analytics
 import com.postpole.gharkhata.data.ThemeMode
 import com.postpole.gharkhata.ui.AppNavHost
@@ -31,6 +32,8 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     @Inject lateinit var analytics: Analytics
+
+    @Inject lateinit var ads: AdsManager
 
     private lateinit var update: InAppUpdate
 
@@ -54,6 +57,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         update = InAppUpdate(this, onError = analytics::recordNonFatal)
+        // UMP consent first; MobileAds.initialize only follows once ads can be requested. Once per process.
+        ads.start(this)
         if (savedInstanceState == null) {
             update.check()
             consumeGoToToday(intent)
@@ -68,7 +73,7 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.DARK -> true
             }
             GharKhataTheme(darkTheme = dark, dynamicColor = theme.dynamicColor) {
-                AppNavHost(onScreen = viewModel::onScreen, goToToday = goToToday.intValue)
+                AppNavHost(onScreen = viewModel::onScreen, goToToday = goToToday.intValue, ads = ads)
                 if (updateReady && !dismissed) {
                     AlertDialog(
                         onDismissRequest = { dismissed = true },

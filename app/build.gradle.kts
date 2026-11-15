@@ -79,7 +79,19 @@ android {
     }
 
     buildTypes {
+        // Debug / internal builds only ever load Google's official demo ad units (never production units).
+        debug {
+            buildConfigField("boolean", "ADS_USE_TEST_IDS", "true")
+            // Optional UMP testing: -PumpDebugGeography=eea|us (+ -PumpTestDeviceId=<hashed id from logcat>).
+            val geography = providers.gradleProperty("umpDebugGeography").getOrElse("")
+            val testDevice = providers.gradleProperty("umpTestDeviceId").getOrElse("")
+            buildConfigField("String", "UMP_DEBUG_GEOGRAPHY", "\"$geography\"")
+            buildConfigField("String", "UMP_TEST_DEVICE_ID", "\"$testDevice\"")
+        }
         release {
+            buildConfigField("boolean", "ADS_USE_TEST_IDS", "false")
+            buildConfigField("String", "UMP_DEBUG_GEOGRAPHY", "\"\"")
+            buildConfigField("String", "UMP_TEST_DEVICE_ID", "\"\"")
             if (signingComplete) signingConfig = signingConfigs.getByName("release")
             // Native symbols for Crashlytics / Play Console (no-op when the app has no native code).
             ndk.debugSymbolLevel = "FULL"
@@ -164,6 +176,9 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.config)
+    implementation(libs.play.services.ads)
+    implementation(libs.ump)
     implementation(libs.play.review)
     implementation(libs.play.app.update)
     debugImplementation(libs.androidx.compose.ui.tooling)

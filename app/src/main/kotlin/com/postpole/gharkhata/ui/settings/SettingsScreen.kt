@@ -96,6 +96,7 @@ fun SettingsScreen(
     val dynamicColor by viewModel.dynamicColor.collectAsStateWithLifecycle()
     val currency by viewModel.defaultCurrency.collectAsStateWithLifecycle()
     val reminderMinutes by viewModel.reminderMinutes.collectAsStateWithLifecycle()
+    val privacyOptionsRequired by viewModel.privacyOptionsRequired.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val resolver = context.contentResolver
     val snackbarHostState = remember { SnackbarHostState() }
@@ -152,6 +153,8 @@ fun SettingsScreen(
             dynamicColor = dynamicColor,
             currency = currency,
             reminderMinutes = reminderMinutes,
+            privacyOptionsRequired = privacyOptionsRequired,
+            onPrivacyOptions = { context.findActivity()?.let(viewModel::showPrivacyOptions) },
             onUpgrade = { showPro = "general" },
             onRestorePurchases = viewModel::restore,
             onBackup = { exportJson.launch(backupFileName("json")) },
@@ -293,6 +296,8 @@ internal fun SettingsContent(
     dynamicColor: Boolean,
     currency: String?,
     reminderMinutes: Int?,
+    privacyOptionsRequired: Boolean = false,
+    onPrivacyOptions: () -> Unit = {},
     onUpgrade: () -> Unit = {},
     onRestorePurchases: () -> Unit = {},
     onBackup: () -> Unit = {},
@@ -377,6 +382,12 @@ internal fun SettingsContent(
             SettingsGroup {
                 SettingsRow(Icons.Outlined.Info, stringResource(R.string.settings_version), BuildConfig.VERSION_NAME)
                 SettingsRow(Icons.Outlined.PrivacyTip, stringResource(R.string.settings_privacy_policy), null, onClick = onPrivacy)
+                if (privacyOptionsRequired) {
+                    SettingsRow(
+                        Icons.Outlined.PrivacyTip, stringResource(R.string.settings_privacy_options),
+                        stringResource(R.string.settings_privacy_options_hint), onClick = onPrivacyOptions,
+                    )
+                }
                 SettingsRow(Icons.Outlined.Mail, stringResource(R.string.settings_feedback), stringResource(R.string.support_email), onClick = onFeedback)
             }
             Spacer(Modifier.height(24.dp))
@@ -495,6 +506,12 @@ private fun formatTime(context: Context, minutesOfDay: Int): String =
 private fun backupFileName(extension: String): String {
     val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
     return "backup-$date.$extension"
+}
+
+private tailrec fun Context.findActivity(): android.app.Activity? = when (this) {
+    is android.app.Activity -> this
+    is android.content.ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 private fun Context.openLink(intent: Intent) {

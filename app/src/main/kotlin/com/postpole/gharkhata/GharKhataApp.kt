@@ -11,6 +11,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration
 import com.postpole.gharkhata.reminder.ReminderController
+import com.postpole.gharkhata.ads.AdsManager
 import com.postpole.gharkhata.analytics.Analytics
 import com.postpole.gharkhata.analytics.AnalyticsEvents
 import com.postpole.gharkhata.billing.BillingRepository
@@ -25,6 +26,7 @@ import javax.inject.Inject
 class GharKhataApp : Application(), Configuration.Provider {
     @Inject lateinit var billing: BillingRepository
     @Inject lateinit var analytics: Analytics
+    @Inject lateinit var ads: AdsManager
     @Inject lateinit var dataStore: DataStore<Preferences>
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var reminders: ReminderController
@@ -42,7 +44,10 @@ class GharKhataApp : Application(), Configuration.Provider {
         }
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {
-                override fun onStart(owner: LifecycleOwner) = billing.onForeground()
+                override fun onStart(owner: LifecycleOwner) {
+                    billing.onForeground()
+                    ads.onForeground() // picks up the ads_enabled kill switch without a reinstall
+                }
             },
         )
     }
