@@ -64,16 +64,27 @@ class ConsentManager(context: Context) {
 
     private fun finish(onDone: (Boolean) -> Unit) {
         gathering = false
-        _privacyOptionsRequired.value =
-            info.privacyOptionsRequirementStatus == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
+        refreshPrivacyOptionsRequired()
         onDone(info.canRequestAds())
     }
 
-    /** Re-opens the UMP privacy options form (Settings). */
-    fun showPrivacyOptions(activity: Activity, onDismissed: (error: String?) -> Unit = {}) {
+    private fun refreshPrivacyOptionsRequired() {
+        _privacyOptionsRequired.value =
+            info.privacyOptionsRequirementStatus == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
+    }
+
+    /**
+     * Re-opens the UMP privacy options form (Settings). On dismissal the requirement status is
+     * refreshed and [onDismissed] gets the current [canRequestAds] so callers can re-gate ads.
+     */
+    fun showPrivacyOptions(
+        activity: Activity,
+        onDismissed: (error: String?, canRequestAds: Boolean) -> Unit = { _, _ -> },
+    ) {
         UserMessagingPlatform.showPrivacyOptionsForm(activity) { error ->
             if (error != null) Log.w(TAG, "Privacy options: ${error.errorCode} ${error.message}")
-            onDismissed(error?.message)
+            refreshPrivacyOptionsRequired()
+            onDismissed(error?.message, info.canRequestAds())
         }
     }
 

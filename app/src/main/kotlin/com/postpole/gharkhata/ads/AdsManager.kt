@@ -49,6 +49,9 @@ class AdsManager(
 
     private val sdkReadyFlow = kotlinx.coroutines.flow.MutableStateFlow(false)
 
+    /** Live `canRequestAds()` result; updated after the consent flow and after Privacy options. */
+    private val consentGate = kotlinx.coroutines.flow.MutableStateFlow(false)
+
     /** True once UMP allowed ad requests and the Mobile Ads SDK was initialised. */
     val sdkReady: StateFlow<Boolean> = sdkReadyFlow
 
@@ -59,13 +62,13 @@ class AdsManager(
 
     /** Banners may be shown: consent given, SDK ready, kill switch on, banners on, not Pro. */
     val bannersAllowed: StateFlow<Boolean> =
-        combine(sdkReadyFlow, config.settings, entitledToAds) { ready, s, pro ->
-            ready && s.adsEnabled && s.bannerEnabled && !pro
+        combine(sdkReadyFlow, consentGate, config.settings, entitledToAds) { ready, consented, s, pro ->
+            ready && consented && s.adsEnabled && s.bannerEnabled && !pro
         }.stateIn(scope, SharingStarted.Eagerly, false)
 
     private val interstitialsAllowedFlow =
-        combine(sdkReadyFlow, config.settings, entitledToAds) { ready, s, pro ->
-            ready && s.adsEnabled && s.interstitialEnabled && !pro
+        combine(sdkReadyFlow, consentGate, config.settings, entitledToAds) { ready, consented, s, pro ->
+            ready && consented && s.adsEnabled && s.interstitialEnabled && !pro
         }.stateIn(scope, SharingStarted.Eagerly, false)
 
     val privacyOptionsRequired: StateFlow<Boolean> get() = consent.privacyOptionsRequired
@@ -100,7 +103,7 @@ class AdsManager(
     /** UMP first, then init. Safe to call repeatedly (e.g. on every Activity creation). */
     fun gatherConsent(activity: Activity) {
         if (initStarted.get()) return
-        consent.gather(activity) { canRequest -> if (canRequest) initializeSdk() }
+        consent.gather(activity) { canRequest -> applyConsent(canRequest) }
     }
 
     private fun initializeSdk() {
@@ -119,7 +122,20 @@ class AdsManager(
     }
 
     fun showPrivacyOptions(activity: Activity, onDismissed: (String?) -> Unit = {}) =
-        consent.showPrivacyOptions(activity, onDismissed)
+        consent.showPrivacyOptions(activity) { error, canRequest ->
+            applyConsent(canRequest)
+            onDismissed(error)
+        }
+
+    /** Live consent gate: withdrawn consent stops ads now; granted consent initialises the SDK if needed. */
+    private fun applyConsent(canRequest: Boolean) {
+        consentGate.value = canRequest
+        if (canRequest) {
+            initializeSdk()
+        } else {
+            interstitial = null
+        }
+    }
 
     /** Preloads the interstitial (called when Bill preview opens) if one could be shown later. */
     fun preloadInterstitial(activity: Activity) {
