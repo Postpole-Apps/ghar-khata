@@ -11,6 +11,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration
 import com.postpole.gharkhata.reminder.ReminderController
+import com.postpole.gharkhata.ads.AdsManager
 import com.postpole.gharkhata.analytics.Analytics
 import com.postpole.gharkhata.analytics.AnalyticsEvents
 import com.postpole.gharkhata.billing.BillingRepository
@@ -28,6 +29,7 @@ class GharKhataApp : Application(), Configuration.Provider {
     @Inject lateinit var dataStore: DataStore<Preferences>
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var reminders: ReminderController
+    @Inject lateinit var ads: AdsManager
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -35,6 +37,7 @@ class GharKhataApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         billing.start()
+        ads.start()
         logLaunch()
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             // Re-runs whenever the entitlement changes (e.g. Play revokes Pro after a refund).
@@ -42,7 +45,10 @@ class GharKhataApp : Application(), Configuration.Provider {
         }
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {
-                override fun onStart(owner: LifecycleOwner) = billing.onForeground()
+                override fun onStart(owner: LifecycleOwner) {
+                    billing.onForeground()
+                    ads.onForeground()
+                }
             },
         )
     }
