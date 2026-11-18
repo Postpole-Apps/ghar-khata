@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import com.postpole.gharkhata.analytics.Analytics
 import com.postpole.gharkhata.analytics.AnalyticsEvents
 import com.postpole.gharkhata.analytics.AnalyticsParams
+import com.postpole.gharkhata.analytics.PurchaseFailReasons
 import com.postpole.gharkhata.analytics.NoOpAnalytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -52,6 +53,10 @@ class BillingRepository(
 
     @Volatile
     private var loadedRemoveAds: ProductResult.Loaded? = null
+
+    /** Product whose purchase sheet was last launched; lets cancel/error updates be attributed. */
+    @Volatile
+    private var inFlight: Product? = null
 
     /** Pro product owned. Gates every Pro feature; Remove ads does NOT affect it. */
     val isPro: StateFlow<Boolean> = dataStore.data
@@ -169,21 +174,60 @@ class BillingRepository(
     fun launchPurchase(activity: Activity, product: Product = Product.PRO): Boolean {
         val launched = gateway.launchPurchase(activity, product)
         if (launched) {
-            analytics.logEvent(AnalyticsEvents.PURCHASE_STARTED)
+            inFlight = product
+            analytics.logEvent(
+                if (product == Product.PRO) AnalyticsEvents.PURCHASE_STARTED else AnalyticsEvents.REMOVE_ADS_PURCHASE_START,
+                productParams(product),
+            )
         } else {
+            inFlight = null
+            logRemoveAdsFail(product, PurchaseFailReasons.LAUNCH_FAILED)
             analytics.recordNonFatal(BillingException("Could not launch purchase flow"))
             _messages.trySend(BillingMessage.LAUNCH_FAILED)
         }
         return launched
     }
 
+    /** Product id / price / currency when Play has told us; no personal data. */
+    private fun productParams(product: Product): Map<String, Any> {
+        val loaded = if (product == Product.PRO) loadedPro else loadedRemoveAds
+        return buildMap {
+            if (loaded == null) return@buildMap
+            if (loaded.productId.isNotEmpty()) put(AnalyticsParams.ITEM_ID, loaded.productId)
+            if (loaded.priceMicros > 0 && loaded.currencyCode.isNotEmpty()) {
+                put(AnalyticsParams.PRICE_MICROS, loaded.priceMicros)
+                put(AnalyticsParams.VALUE, loaded.priceMicros / 1_000_000.0)
+                put(AnalyticsParams.CURRENCY, loaded.currencyCode)
+            }
+        }
+    }
+
+    private fun logRemoveAdsFail(product: Product, reason: String) {
+        if (product != Product.REMOVE_ADS) return
+        analytics.logEvent(
+            AnalyticsEvents.REMOVE_ADS_PURCHASE_FAIL,
+            productParams(product) + (AnalyticsParams.REASON to reason),
+        )
+    }
+
+    /** Attributes a cancel/error to the Remove ads sheet that was open, then clears it. */
+    private fun failInFlight(reason: String) {
+        val product = inFlight ?: return
+        inFlight = null
+        logRemoveAdsFail(product, reason)
+    }
+
     private suspend fun onUpdate(update: PurchaseUpdate) {
         when (update) {
             is PurchaseUpdate.Purchases ->
                 applyPurchases(update.purchases, revokeIfAbsent = false, source = Source.PURCHASE_FLOW)
-            PurchaseUpdate.AlreadyOwned -> refresh()
-            PurchaseUpdate.Canceled -> Unit
+            PurchaseUpdate.AlreadyOwned -> {
+                failInFlight(PurchaseFailReasons.ALREADY_OWNED)
+                refresh()
+            }
+            PurchaseUpdate.Canceled -> failInFlight(PurchaseFailReasons.CANCELED)
             is PurchaseUpdate.Error -> {
+                failInFlight(PurchaseFailReasons.BILLING_ERROR)
                 log("Purchase failed with code ${update.code}")
                 analytics.recordNonFatal(BillingException("Purchase failed with code ${update.code}"))
                 _messages.trySend(BillingMessage.PURCHASE_ERROR)
@@ -215,20 +259,23 @@ class BillingRepository(
         }
     }
 
-    /** `purchase` (with value + currency) for a fresh buy, `purchase_restored` when found on refresh/restore. */
+    /**
+     * Pro: `purchase` for a fresh buy, `purchase_restored` when found on refresh/restore.
+     * Remove ads: `remove_ads_purchase_success` for a fresh buy only; a refresh/restore finding it logs nothing.
+     */
     private fun logPurchaseEvent(source: Source, product: Product) {
-        when (source) {
-            Source.PURCHASE_FLOW -> {
-                val loaded = if (product == Product.PRO) loadedPro else loadedRemoveAds
-                val params = buildMap<String, Any> {
-                    if (loaded != null && loaded.priceMicros > 0 && loaded.currencyCode.isNotEmpty()) {
-                        put(AnalyticsParams.VALUE, loaded.priceMicros / 1_000_000.0)
-                        put(AnalyticsParams.CURRENCY, loaded.currencyCode)
-                    }
-                }
-                analytics.logEvent(AnalyticsEvents.PURCHASE, params)
+        if (source == Source.PURCHASE_FLOW && inFlight == product) inFlight = null
+        val params = productParams(product)
+        when (product) {
+            Product.PRO -> when (source) {
+                Source.PURCHASE_FLOW -> analytics.logEvent(AnalyticsEvents.PURCHASE, params)
+                Source.REFRESH -> analytics.logEvent(
+                    AnalyticsEvents.PURCHASE_RESTORED,
+                    params.filterKeys { it == AnalyticsParams.ITEM_ID },
+                )
             }
-            Source.REFRESH -> analytics.logEvent(AnalyticsEvents.PURCHASE_RESTORED)
+            Product.REMOVE_ADS ->
+                if (source == Source.PURCHASE_FLOW) analytics.logEvent(AnalyticsEvents.REMOVE_ADS_PURCHASE_SUCCESS, params)
         }
     }
 

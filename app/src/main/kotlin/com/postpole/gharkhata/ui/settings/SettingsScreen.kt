@@ -147,6 +147,15 @@ fun SettingsScreen(
         }
     }
 
+    val offerShown = removeAdsOffer(
+        isPro = isPro,
+        hasRemoveAds = hasRemoveAds,
+        price = removeAdsPrice,
+        pending = removeAdsPending,
+        unavailable = removeAdsUnavailable,
+    ) is RemoveAdsOffer.Price
+    LaunchedEffect(offerShown) { if (offerShown) viewModel.onRemoveAdsOfferShown() }
+
     val messages = rememberEventMessages()
     LaunchedEffect(viewModel) {
         viewModel.events.collect { snackbarHostState.showSnackbar(messages(it)) }

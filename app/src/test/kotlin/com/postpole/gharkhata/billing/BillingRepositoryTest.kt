@@ -19,6 +19,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
 import java.io.File
 
 private class FakeGateway : BillingGateway {
@@ -67,6 +68,7 @@ private class FakeGateway : BillingGateway {
     }
 }
 
+@RunWith(org.robolectric.RobolectricTestRunner::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class BillingRepositoryTest {
     @get:Rule val tmp = TemporaryFolder()
@@ -425,5 +427,92 @@ class BillingRepositoryTest {
         advanceUntilIdle()
         assertEquals(3, gateway.connectCalls)
         assertFalse(repo.isPro.value)
+    }
+
+    // ---- Remove ads vs Pro analytics split ----
+
+    private val activity: Activity = org.robolectric.Robolectric.buildActivity(Activity::class.java).get()
+
+    private suspend fun TestScope.started(analytics: RecordingAnalytics): BillingRepository {
+        val repo = repoWith(analytics)
+        gateway.product = ProductResult.Loaded("₹499", 499_000_000, "INR", "pro_id")
+        gateway.removeAdsProduct = ProductResult.Loaded("₹49", 49_000_000, "INR", "remove_ads")
+        repo.start()
+        advanceUntilIdle()
+        return repo
+    }
+
+    @Test fun removeAds_start_cancel_logsStartThenFail_notProEvents() = runTest {
+        val analytics = RecordingAnalytics()
+        val repo = started(analytics)
+        repo.launchPurchase(activity, Product.REMOVE_ADS)
+        gateway.updatesFlow.emit(PurchaseUpdate.Canceled)
+        advanceUntilIdle()
+        assertEquals(listOf("remove_ads_purchase_start", "remove_ads_purchase_fail"), analytics.events.map { it.first })
+        val fail = analytics.events.last().second
+        assertEquals("remove_ads", fail["item_id"])
+        assertEquals(49_000_000L, fail["price_micros"])
+        assertEquals("INR", fail["currency"])
+        assertEquals("canceled", fail["reason"])
+    }
+
+    @Test fun removeAds_success_logsOnceAndNoProPurchase() = runTest {
+        val analytics = RecordingAnalytics()
+        val repo = started(analytics)
+        repo.launchPurchase(activity, Product.REMOVE_ADS)
+        gateway.updatesFlow.emit(PurchaseUpdate.Purchases(listOf(adsPurchased)))
+        advanceUntilIdle()
+        assertEquals(listOf("remove_ads_purchase_start", "remove_ads_purchase_success"), analytics.events.map { it.first })
+        val ok = analytics.events.last().second
+        assertEquals("remove_ads", ok["item_id"])
+        assertEquals(49.0, ok["value"])
+        assertEquals("INR", ok["currency"])
+    }
+
+    @Test fun removeAds_restoreOrRefresh_logsNoSuccess() = runTest {
+        val analytics = RecordingAnalytics()
+        gateway.owned = listOf(adsPurchased.copy(acknowledged = true))
+        val repo = started(analytics)
+        repo.restore()
+        advanceUntilIdle()
+        assertTrue(analytics.events.isEmpty())
+    }
+
+    @Test fun removeAds_launchFailure_andBillingError_logFail() = runTest {
+        val analytics = RecordingAnalytics()
+        val repo = started(analytics)
+        gateway.launchResult = false
+        repo.launchPurchase(activity, Product.REMOVE_ADS)
+        assertEquals(listOf("remove_ads_purchase_fail"), analytics.events.map { it.first })
+        assertEquals("launch_failed", analytics.events.single().second["reason"])
+        analytics.events.clear()
+        gateway.launchResult = true
+        repo.launchPurchase(activity, Product.REMOVE_ADS)
+        gateway.updatesFlow.emit(PurchaseUpdate.Error(6))
+        advanceUntilIdle()
+        assertEquals("billing_error", analytics.events.last().second["reason"])
+    }
+
+    @Test fun pro_purchase_keepsProEventsWithProductAndPrice() = runTest {
+        val analytics = RecordingAnalytics()
+        val repo = started(analytics)
+        repo.launchPurchase(activity, Product.PRO)
+        gateway.updatesFlow.emit(PurchaseUpdate.Purchases(listOf(purchased)))
+        advanceUntilIdle()
+        assertEquals(listOf("purchase_started", "purchase"), analytics.events.map { it.first })
+        for ((_, p) in analytics.events) {
+            assertEquals("pro_id", p["item_id"])
+            assertEquals(499.0, p["value"])
+            assertEquals("INR", p["currency"])
+        }
+    }
+
+    @Test fun pro_cancelOrError_logsNoRemoveAdsFail() = runTest {
+        val analytics = RecordingAnalytics()
+        val repo = started(analytics)
+        repo.launchPurchase(activity, Product.PRO)
+        gateway.updatesFlow.emit(PurchaseUpdate.Canceled)
+        advanceUntilIdle()
+        assertEquals(listOf("purchase_started"), analytics.events.map { it.first })
     }
 }
