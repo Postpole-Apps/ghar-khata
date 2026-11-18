@@ -26,6 +26,14 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-2007361247232604~4425956356" />
 
+        <!-- Ad-free build (-PadsShipping=false): the Mobile Ads SDK must not auto-initialise. -->
+        <provider
+            android:name="com.google.android.gms.ads.MobileAdsInitProvider"
+            android:authorities="${applicationId}.mobileadsinitprovider"
+            android:enabled="${mobileAdsInitEnabled}"
+            android:exported="false"
+            tools:node="merge" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

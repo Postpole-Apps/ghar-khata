@@ -18,6 +18,25 @@ Requires JDK 21 and the Android SDK (`ANDROID_HOME` or `local.properties` with `
 ./gradlew assembleRelease
 ```
 
+## Build variants (ads switch)
+One compile-time Gradle property, `adsShipping` (exposed as `BuildConfig.ADS_SHIPPING`), selects the variant. It works for every task, debug or release.
+
+| Variant | Command | Behaviour |
+| --- | --- | --- |
+| Ads release (default) | `./gradlew bundleRelease` | UMP consent, Mobile Ads SDK, banner and interstitial, Remove ads row, "No ads" Pro bullet |
+| Ad-free fallback | `./gradlew bundleRelease -PadsShipping=false` | No Mobile Ads SDK init (its auto-init provider is disabled in the manifest), no UMP, no ad requests or views, no Remove ads row, no ad-related copy (Privacy options row never appears). GA4, Crashlytics and AD_ID are unchanged |
+
+Use the ad-free fallback if the ads release isn't ready by about 28 Nov. Release builds use production ad units; debug builds, and `-PtestAds=true` release builds, use Google's demo units only.
+
+### UMP QA (debug builds only)
+To make the consent form appear on a test device, add its hashed id (printed in Logcat as "Use RequestConfiguration.Builder().setTestDeviceIds(...)" / UMP debug messages) to the git-ignored `local.properties`:
+
+```
+ump.testDeviceIds=33BE2250B43518CCDA7DE426D04EE231,ANOTHERHASHEDID
+```
+
+Debug builds pass these ids to `ConsentDebugSettings`, and debug EEA geography is turned on automatically when ids are set. Override with `-PumpDebugEea=true|false`. Release builds never set debug geography or test devices (enforced in `consentDebugConfig`, covered by `ConsentDebugTest`). To re-test, clear app data or run `ConsentInformation.reset()`.
+
 ## Release and signing
 `app/build.gradle.kts` signs the release build from `KEYSTORE_BASE64` (or `KEYSTORE_FILE`), `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` (environment or `local.properties`); the build is unsigned if absent. The release workflow lives in `ci-templates/release.yml` (signed AAB artifact on push to main; optional draft upload to the Play internal track via `workflow_dispatch`).
 

@@ -269,10 +269,7 @@ class BillingRepository(
         when (product) {
             Product.PRO -> when (source) {
                 Source.PURCHASE_FLOW -> analytics.logEvent(AnalyticsEvents.PURCHASE, params)
-                Source.REFRESH -> analytics.logEvent(
-                    AnalyticsEvents.PURCHASE_RESTORED,
-                    params.filterKeys { it == AnalyticsParams.ITEM_ID },
-                )
+                Source.REFRESH -> analytics.logEvent(AnalyticsEvents.PURCHASE_RESTORED, params)
             }
             Product.REMOVE_ADS ->
                 if (source == Source.PURCHASE_FLOW) analytics.logEvent(AnalyticsEvents.REMOVE_ADS_PURCHASE_SUCCESS, params)
