@@ -66,11 +66,13 @@ android {
         val proProductId = providers.gradleProperty("proProductId").getOrElse("lifetime_full_access")
         buildConfigField("String", "PRO_PRODUCT_ID", "\"$proProductId\"")
 
-        // True for the build that ships ads (closed test and any production build with ads). Gates the
-        // truthful "No ads" Pro bullet and the Remove ads purchase row. Pass -PadsShipping=false for a
-        // production build that launches without ads.
-        val adsShipping = providers.gradleProperty("adsShipping").getOrElse("true")
-        buildConfigField("boolean", "ADS_SHIPPING", adsShipping)
+        // Compile-time ads switch. Default true = the ads release. -PadsShipping=false builds the
+        // ad-free fallback: no Mobile Ads SDK init, no UMP, no ad requests or views, no Remove ads
+        // row and no ad-related copy (see README, "Build variants").
+        val adsShipping = providers.gradleProperty("adsShipping").getOrElse("true").toBooleanStrict()
+        buildConfigField("boolean", "ADS_SHIPPING", adsShipping.toString())
+        // The ad-free build also disables the SDK's auto-init ContentProvider (manifest placeholder).
+        manifestPlaceholders["mobileAdsInitEnabled"] = adsShipping.toString()
     }
 
     signingConfigs {
@@ -88,13 +90,23 @@ android {
         debug {
             // Debug builds only ever use Google's official demo ad unit IDs.
             buildConfigField("boolean", "USE_TEST_ADS", "true")
-            buildConfigField("boolean", "UMP_DEBUG_EEA", providers.gradleProperty("umpDebugEea").getOrElse("false"))
+            // UMP QA (debug only): comma-separated hashed test device ids from the git-ignored
+            // local.properties key ump.testDeviceIds. Only [A-Za-z0-9,] is kept. Release never gets them.
+            val umpTestDeviceIds = (localProps.getProperty("ump.testDeviceIds") ?: "")
+                .filter { it.isLetterOrDigit() || it == ',' }
+            buildConfigField("String", "UMP_TEST_DEVICE_IDS", "\"$umpTestDeviceIds\"")
+            // Debug EEA geography defaults ON when test device ids are set; -PumpDebugEea=true|false overrides.
+            buildConfigField(
+                "boolean", "UMP_DEBUG_EEA",
+                providers.gradleProperty("umpDebugEea").getOrElse(umpTestDeviceIds.isNotEmpty().toString()),
+            )
         }
         release {
             // Release (closed-test / production ads build) uses the production unit IDs.
             // Pass -PtestAds=true to build an internal release-type APK that uses demo units.
             buildConfigField("boolean", "USE_TEST_ADS", providers.gradleProperty("testAds").getOrElse("false"))
             buildConfigField("boolean", "UMP_DEBUG_EEA", "false")
+            buildConfigField("String", "UMP_TEST_DEVICE_IDS", "\"\"")
             if (signingComplete) signingConfig = signingConfigs.getByName("release")
             // Native symbols for Crashlytics / Play Console (no-op when the app has no native code).
             ndk.debugSymbolLevel = "FULL"

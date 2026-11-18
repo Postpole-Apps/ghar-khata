@@ -16,6 +16,7 @@ import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.postpole.gharkhata.BuildConfig
 import com.postpole.gharkhata.billing.BillingRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +44,8 @@ class AdsManager(
     private val dataStore: DataStore<Preferences>,
     private val scope: CoroutineScope,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** Compile-time switch: false is the ad-free build, where this class does nothing. */
+    private val adsShipping: Boolean = BuildConfig.ADS_SHIPPING,
 ) {
     private val initStarted = AtomicBoolean(false)
     private val started = AtomicBoolean(false)
@@ -63,12 +66,12 @@ class AdsManager(
     /** Banners may be shown: consent given, SDK ready, kill switch on, banners on, not Pro. */
     val bannersAllowed: StateFlow<Boolean> =
         combine(sdkReadyFlow, consentGate, config.settings, entitledToAds) { ready, consented, s, pro ->
-            ready && consented && s.adsEnabled && s.bannerEnabled && !pro
+            adsShipping && ready && consented && s.adsEnabled && s.bannerEnabled && !pro
         }.stateIn(scope, SharingStarted.Eagerly, false)
 
     private val interstitialsAllowedFlow =
         combine(sdkReadyFlow, consentGate, config.settings, entitledToAds) { ready, consented, s, pro ->
-            ready && consented && s.adsEnabled && s.interstitialEnabled && !pro
+            adsShipping && ready && consented && s.adsEnabled && s.interstitialEnabled && !pro
         }.stateIn(scope, SharingStarted.Eagerly, false)
 
     val privacyOptionsRequired: StateFlow<Boolean> get() = consent.privacyOptionsRequired
@@ -80,7 +83,7 @@ class AdsManager(
 
     /** Call once from Application.onCreate. */
     fun start() {
-        if (!started.compareAndSet(false, true)) return
+        if (!adsShipping || !started.compareAndSet(false, true)) return
         config.refresh()
         scope.launch {
             val prefs = dataStore.data.first()
@@ -98,11 +101,13 @@ class AdsManager(
     }
 
     /** App returned to the foreground: pick up Remote Config changes (kill switch). */
-    fun onForeground() = config.refresh()
+    fun onForeground() {
+        if (adsShipping) config.refresh()
+    }
 
     /** UMP first, then init. Safe to call repeatedly (e.g. on every Activity creation). */
     fun gatherConsent(activity: Activity) {
-        if (initStarted.get()) return
+        if (!adsShipping || initStarted.get()) return
         consent.gather(activity) { canRequest -> applyConsent(canRequest) }
     }
 

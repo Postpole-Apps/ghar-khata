@@ -18,7 +18,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * published in AdMob; elsewhere UMP reports ads can be requested straight away.
  */
 class ConsentManager(context: Context) {
-    private val info: ConsentInformation = UserMessagingPlatform.getConsentInformation(context)
+    // Lazy so the ad-free build never touches UMP.
+    private val info: ConsentInformation by lazy { UserMessagingPlatform.getConsentInformation(context) }
     private var gathering = false
 
     private val _privacyOptionsRequired = MutableStateFlow(false)
@@ -35,12 +36,15 @@ class ConsentManager(context: Context) {
     fun gather(activity: Activity, onDone: (canRequestAds: Boolean) -> Unit) {
         if (gathering) return
         gathering = true
+        // Debug builds only; release always resolves to no debug geography and no test devices.
+        val debug = consentDebugConfig(BuildConfig.DEBUG, BuildConfig.UMP_DEBUG_EEA, BuildConfig.UMP_TEST_DEVICE_IDS)
         val params = ConsentRequestParameters.Builder().apply {
-            if (BuildConfig.UMP_DEBUG_EEA) {
+            if (debug.isActive) {
                 setConsentDebugSettings(
-                    ConsentDebugSettings.Builder(activity)
-                        .setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_EEA)
-                        .build(),
+                    ConsentDebugSettings.Builder(activity).apply {
+                        if (debug.eeaGeography) setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_EEA)
+                        debug.testDeviceIds.forEach(::addTestDeviceHashedId)
+                    }.build(),
                 )
             }
         }.build()

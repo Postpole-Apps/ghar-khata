@@ -53,14 +53,10 @@ class SettingsViewModel @Inject constructor(
     val removeAdsPending: StateFlow<Boolean> = billing.removeAdsPending
     val removeAdsUnavailable: StateFlow<Boolean> = billing.removeAdsUnavailable
 
-    private var removeAdsViewLogged = false
+    private val paywallViewLogger = RemoveAdsPaywallViewLogger(analytics)
 
     /** Logged once per Settings visit when a purchasable Remove ads offer is on screen. */
-    fun onRemoveAdsOfferShown() {
-        if (removeAdsViewLogged) return
-        removeAdsViewLogged = true
-        analytics.logEvent(AnalyticsEvents.REMOVE_ADS_PAYWALL_VIEW)
-    }
+    fun onRemoveAdsOfferShown() = paywallViewLogger.onOfferShown()
 
     fun buyRemoveAds(activity: Activity) {
         analytics.logEvent(

@@ -79,7 +79,7 @@ interface AdsSettingsSource {
  */
 class RemoteConfigAdsSettings(context: Context) : AdsSettingsSource {
     private val remote: FirebaseRemoteConfig? =
-        if (FirebaseApp.getApps(context).isEmpty()) {
+        if (!BuildConfig.ADS_SHIPPING || FirebaseApp.getApps(context).isEmpty()) {
             null
         } else {
             FirebaseRemoteConfig.getInstance().also { rc ->

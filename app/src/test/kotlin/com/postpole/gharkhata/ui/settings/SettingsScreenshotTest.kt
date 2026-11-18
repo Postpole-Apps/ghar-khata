@@ -43,10 +43,13 @@ class SettingsScreenshotTest {
     val compose = createComposeRule()
 
     private fun settings(isPro: Boolean, dark: Boolean, file: String) {
+        // Free renders show the Remove ads row (ads build); Pro never sees it.
+        val removeAds = if (isPro) null else RemoveAdsOffer.Price("₹49")
         compose.setContent {
             GharKhataTheme(darkTheme = dark, dynamicColor = false) {
                 SettingsContent(
                     isPro = isPro,
+                    removeAds = removeAds,
                     themeMode = ThemeMode.SYSTEM,
                     dynamicColor = false,
                     currency = "INR",

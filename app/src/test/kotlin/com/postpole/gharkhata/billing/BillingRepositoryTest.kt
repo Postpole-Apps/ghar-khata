@@ -515,4 +515,49 @@ class BillingRepositoryTest {
         advanceUntilIdle()
         assertEquals(listOf("purchase_started"), analytics.events.map { it.first })
     }
+
+    @Test fun removeAds_alreadyOwned_logsFailWithAlreadyOwnedReason() = runTest {
+        val analytics = RecordingAnalytics()
+        val repo = started(analytics)
+        repo.launchPurchase(activity, Product.REMOVE_ADS)
+        gateway.updatesFlow.emit(PurchaseUpdate.AlreadyOwned)
+        advanceUntilIdle()
+        assertEquals(listOf("remove_ads_purchase_start", "remove_ads_purchase_fail"), analytics.events.map { it.first })
+        val fail = analytics.events.last().second
+        assertEquals("already_owned", fail["reason"])
+        assertEquals("remove_ads", fail["item_id"])
+    }
+
+    @Test fun pro_alreadyOwned_logsNoRemoveAdsFail() = runTest {
+        val analytics = RecordingAnalytics()
+        val repo = started(analytics)
+        repo.launchPurchase(activity, Product.PRO)
+        gateway.updatesFlow.emit(PurchaseUpdate.AlreadyOwned)
+        advanceUntilIdle()
+        assertEquals(listOf("purchase_started"), analytics.events.map { it.first })
+    }
+
+    @Test fun pro_restore_carriesPriceValueAndCurrencyWhenKnown() = runTest {
+        val analytics = RecordingAnalytics()
+        gateway.owned = listOf(purchased.copy(acknowledged = true))
+        started(analytics)
+        val restored = analytics.events.single { it.first == "purchase_restored" }.second
+        assertEquals("pro_id", restored["item_id"])
+        assertEquals(499_000_000L, restored["price_micros"])
+        assertEquals(499.0, restored["value"])
+        assertEquals("INR", restored["currency"])
+    }
+
+    @Test fun pro_restore_withoutKnownPrice_hasNoValueOrCurrency() = runTest {
+        val analytics = RecordingAnalytics()
+        gateway.owned = listOf(purchased.copy(acknowledged = true))
+        gateway.product = ProductResult.Unavailable
+        val repo = repoWith(analytics)
+        repo.start()
+        advanceUntilIdle()
+        val restored = analytics.events.single { it.first == "purchase_restored" }.second
+        assertFalse(restored.containsKey("value"))
+        assertFalse(restored.containsKey("currency"))
+        assertFalse(restored.containsKey("price_micros"))
+    }
 }
