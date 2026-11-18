@@ -34,6 +34,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,12 +86,17 @@ fun ProviderMonthScreen(
     onEditProvider: (Long) -> Unit,
     onOpenBill: (providerId: Long, yearMonth: Int) -> Unit,
     onOpenYear: (providerId: Long, yearMonth: Int) -> Unit,
+    onOverlayChanged: (Boolean) -> Unit = {},
     viewModel: ProviderMonthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var editDay by remember { mutableStateOf<Long?>(null) }
     var showPaid by remember { mutableStateOf(false) }
     var showPro by remember { mutableStateOf(false) }
+    // The banner is hidden while DayMarkSheet / ProSheet / the paid dialog is open.
+    val overlayOpen = editDay != null || showPaid || showPro
+    LaunchedEffect(overlayOpen) { onOverlayChanged(overlayOpen) }
+    DisposableEffect(Unit) { onDispose { onOverlayChanged(false) } }
     val isPro = rememberIsPro()
     ProviderMonthContent(
         state = state,

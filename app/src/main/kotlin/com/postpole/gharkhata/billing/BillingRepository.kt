@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.first
@@ -49,6 +50,12 @@ class BillingRepository(
     val isPro: StateFlow<Boolean> = dataStore.data
         .map { it[IS_PRO] ?: false }
         .stateIn(scope, SharingStarted.Eagerly, false)
+
+    /**
+     * The persisted entitlement with no initial placeholder: the first emission is the stored value,
+     * so ads code never treats a Pro buyer as free while DataStore is still loading.
+     */
+    val isProStoredUpdates: Flow<Boolean> = dataStore.data.map { it[IS_PRO] ?: false }.distinctUntilChanged()
 
     /** Reads the persisted entitlement directly, so callers at startup never see [isPro]'s initial `false`. */
     suspend fun isProStored(): Boolean = dataStore.data.first()[IS_PRO] ?: false

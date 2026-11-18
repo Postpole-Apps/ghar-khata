@@ -79,7 +79,16 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Debug builds only ever use Google's official demo ad unit IDs.
+            buildConfigField("boolean", "USE_TEST_ADS", "true")
+            buildConfigField("boolean", "UMP_DEBUG_EEA", providers.gradleProperty("umpDebugEea").getOrElse("false"))
+        }
         release {
+            // Release (closed-test / production ads build) uses the production unit IDs.
+            // Pass -PtestAds=true to build an internal release-type APK that uses demo units.
+            buildConfigField("boolean", "USE_TEST_ADS", providers.gradleProperty("testAds").getOrElse("false"))
+            buildConfigField("boolean", "UMP_DEBUG_EEA", "false")
             if (signingComplete) signingConfig = signingConfigs.getByName("release")
             // Native symbols for Crashlytics / Play Console (no-op when the app has no native code).
             ndk.debugSymbolLevel = "FULL"
@@ -164,6 +173,9 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.config)
+    implementation(libs.play.services.ads)
+    implementation(libs.ump)
     implementation(libs.play.review)
     implementation(libs.play.app.update)
     debugImplementation(libs.androidx.compose.ui.tooling)

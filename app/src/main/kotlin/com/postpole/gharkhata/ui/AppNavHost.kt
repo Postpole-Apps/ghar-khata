@@ -3,7 +3,24 @@ package com.postpole.gharkhata.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.postpole.gharkhata.ads.AdBanner
+import com.postpole.gharkhata.ads.AdsManager
+import com.postpole.gharkhata.ads.BannerPlacement
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -83,18 +100,65 @@ private val TABS = listOf(
     Tab(Routes.SETTINGS, Icons.Filled.Settings, R.string.nav_settings),
 )
 
+/**
+ * Banner slot per route. Only browse screens have one: never Provider edit, Bill preview, Settings,
+ * and (by hiding it while a sheet is open) never next to DayMarkSheet / ProSheet.
+ */
+internal fun bannerPlacementFor(route: String?): BannerPlacement? = when (route) {
+    Routes.TODAY -> BannerPlacement.TODAY
+    Routes.PROVIDERS -> BannerPlacement.PROVIDERS
+    Routes.PROVIDER_MONTH -> BannerPlacement.MONTH
+    Routes.YEAR -> BannerPlacement.YEAR
+    else -> null
+}
+
+/** Screens the interstitial may appear on after Bill preview is left. */
+internal fun isInterstitialDestination(route: String?): Boolean =
+    route == Routes.TODAY || route == Routes.PROVIDERS || route == Routes.PROVIDER_MONTH
+
+/** Settle time after leaving Bill preview before the interstitial may show. */
+private const val INTERSTITIAL_SETTLE_MS = 1_500L
+
 @Composable
-fun AppNavHost(onScreen: (String) -> Unit = {}, goToToday: Int = 0) {
+fun AppNavHost(ads: AdsManager, onScreen: (String) -> Unit = {}, goToToday: Int = 0) {
     val navController = rememberNavController()
+    // Bumped each time Bill preview is left for Today / Providers / Month.
+    var billExitTick by remember { mutableIntStateOf(0) }
+    // True while a sheet / dialog is open on the Month screen: the banner is hidden meanwhile.
+    var monthOverlayOpen by remember { mutableStateOf(false) }
     DisposableEffect(navController) {
+        var lastRoute: String? = null
         val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
-            destination.route?.let(onScreen)
+            val dest = destination.route
+            dest?.let(onScreen)
+            if (lastRoute == Routes.BILL && isInterstitialDestination(dest)) billExitTick++
+            lastRoute = dest
         }
         navController.addOnDestinationChangedListener(listener)
         onDispose { navController.removeOnDestinationChangedListener(listener) }
     }
     val current by navController.currentBackStackEntryAsState()
     val route = current?.destination?.route
+    val bannersAllowed by ads.bannersAllowed.collectAsStateWithLifecycle()
+    val activity = LocalContext.current.findActivity()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Warm the interstitial while Bill preview is open (it is never shown there).
+    LaunchedEffect(route) {
+        if (route == Routes.BILL && activity != null) ads.preloadInterstitial(activity)
+    }
+    // Interstitial: only after Bill preview was popped, on Today / Providers / Month, Activity
+    // resumed, no sheet open, caps pass (checked in AdsManager), after a short settle delay.
+    LaunchedEffect(billExitTick) {
+        if (billExitTick == 0 || activity == null) return@LaunchedEffect
+        delay(INTERSTITIAL_SETTLE_MS)
+        if (isInterstitialDestination(navController.currentDestination?.route) &&
+            !monthOverlayOpen &&
+            lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+        ) {
+            ads.showInterstitialIfAllowed(activity)
+        }
+    }
 
     fun switchTab(target: String) {
         navController.navigate(target) {
@@ -116,7 +180,19 @@ fun AppNavHost(onScreen: (String) -> Unit = {}, goToToday: Int = 0) {
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
-        bottomBar = { if (TABS.any { it.route == route }) GharBottomNav(route, ::switchTab) },
+        bottomBar = {
+            val isTab = TABS.any { it.route == route }
+            val placement = bannerPlacementFor(route)
+            Column {
+                if (bannersAllowed && placement != null && !(placement == BannerPlacement.MONTH && monthOverlayOpen)) {
+                    // Above the floating nav on tabs; on non-tab screens it clears the system nav bar.
+                    key(placement) {
+                        AdBanner(placement, if (isTab) Modifier else Modifier.navigationBarsPadding())
+                    }
+                }
+                if (isTab) GharBottomNav(route, ::switchTab)
+            }
+        },
     ) { padding ->
         NavHost(
             navController = navController,
@@ -158,6 +234,7 @@ fun AppNavHost(onScreen: (String) -> Unit = {}, goToToday: Int = 0) {
                     onEditProvider = { navController.navigate(Routes.providerEdit(it)) },
                     onOpenBill = { id, ym -> navController.navigate(Routes.bill(id, ym)) },
                     onOpenYear = { id, ym -> navController.navigate(Routes.year(id, ym / 100)) },
+                    onOverlayChanged = { monthOverlayOpen = it },
                 )
             }
             composable(
@@ -179,10 +256,23 @@ fun AppNavHost(onScreen: (String) -> Unit = {}, goToToday: Int = 0) {
                 YearSummaryScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.SETTINGS) {
-                SettingsScreen()
+                val privacyOptionsRequired by ads.privacyOptionsRequired.collectAsStateWithLifecycle()
+                SettingsScreen(
+                    showPrivacyOptions = privacyOptionsRequired,
+                    onPrivacyOptions = { activity?.let { ads.showPrivacyOptions(it) } },
+                )
             }
         }
     }
+}
+
+private fun Context.findActivity(): Activity? {
+    var c = this
+    while (c is ContextWrapper) {
+        if (c is Activity) return c
+        c = c.baseContext
+    }
+    return null
 }
 
 /** Floating solid pill nav (no blur). Inactive tabs are icon-only with a content description. */

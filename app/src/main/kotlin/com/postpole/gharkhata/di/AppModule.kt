@@ -6,6 +6,10 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
+import com.postpole.gharkhata.ads.AdsManager
+import com.postpole.gharkhata.ads.AdsSettingsSource
+import com.postpole.gharkhata.ads.ConsentManager
+import com.postpole.gharkhata.ads.RemoteConfigAdsSettings
 import com.postpole.gharkhata.analytics.Analytics
 import com.postpole.gharkhata.analytics.createAnalytics
 import com.postpole.gharkhata.review.ReviewPolicy
@@ -69,6 +73,27 @@ object AppModule {
         dataStore = dataStore,
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
         analytics = analytics,
+    )
+
+    @Provides
+    @Singleton
+    fun provideAdsSettings(@ApplicationContext context: Context): AdsSettingsSource =
+        RemoteConfigAdsSettings(context)
+
+    @Provides
+    @Singleton
+    fun provideAdsManager(
+        @ApplicationContext context: Context,
+        config: AdsSettingsSource,
+        billing: BillingRepository,
+        dataStore: DataStore<Preferences>,
+    ): AdsManager = AdsManager(
+        context = context,
+        consent = ConsentManager(context),
+        config = config,
+        billing = billing,
+        dataStore = dataStore,
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     )
 
     @Provides

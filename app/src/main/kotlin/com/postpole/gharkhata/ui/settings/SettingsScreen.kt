@@ -89,6 +89,8 @@ import java.util.Currency
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    showPrivacyOptions: Boolean = false,
+    onPrivacyOptions: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
@@ -162,6 +164,8 @@ fun SettingsScreen(
             onTheme = { showTheme = true },
             onDynamicColor = viewModel::setDynamicColor,
             onCurrency = { showCurrency = true },
+            showPrivacyOptions = showPrivacyOptions,
+            onPrivacyOptions = onPrivacyOptions,
             onPrivacy = {
                 context.openLink(Intent(Intent.ACTION_VIEW, Uri.parse(context.getString(R.string.privacy_policy_url))))
             },
@@ -304,6 +308,8 @@ internal fun SettingsContent(
     onDynamicColor: (Boolean) -> Unit = {},
     onCurrency: () -> Unit = {},
     onPrivacy: () -> Unit = {},
+    showPrivacyOptions: Boolean = false,
+    onPrivacyOptions: () -> Unit = {},
     onFeedback: () -> Unit = {},
 ) {
     val gk = MaterialTheme.gharColors
@@ -377,6 +383,12 @@ internal fun SettingsContent(
             SettingsGroup {
                 SettingsRow(Icons.Outlined.Info, stringResource(R.string.settings_version), BuildConfig.VERSION_NAME)
                 SettingsRow(Icons.Outlined.PrivacyTip, stringResource(R.string.settings_privacy_policy), null, onClick = onPrivacy)
+                if (showPrivacyOptions) {
+                    SettingsRow(
+                        Icons.Outlined.PrivacyTip, stringResource(R.string.settings_privacy_options),
+                        stringResource(R.string.settings_privacy_options_hint), onClick = onPrivacyOptions,
+                    )
+                }
                 SettingsRow(Icons.Outlined.Mail, stringResource(R.string.settings_feedback), stringResource(R.string.support_email), onClick = onFeedback)
             }
             Spacer(Modifier.height(24.dp))
