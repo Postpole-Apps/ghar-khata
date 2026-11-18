@@ -55,12 +55,12 @@ class AdsManager(
     /** True once UMP allowed ad requests and the Mobile Ads SDK was initialised. */
     val sdkReady: StateFlow<Boolean> = sdkReadyFlow
 
-    /** Pro (and later `remove_ads`) buyers never see ads. Emits only once the stored value is known. */
-    private val entitledToAds = billing.isProStoredUpdates
+    /** Pro and `remove_ads` buyers never see ads. Emits only once the stored value is known. */
+    private val entitledToAds = billing.adsRemovedStoredUpdates
 
     private val settings get() = config.settings.value
 
-    /** Banners may be shown: consent given, SDK ready, kill switch on, banners on, not Pro. */
+    /** Banners may be shown: consent given, SDK ready, kill switch on, banners on, ads not removed. */
     val bannersAllowed: StateFlow<Boolean> =
         combine(sdkReadyFlow, consentGate, config.settings, entitledToAds) { ready, consented, s, pro ->
             ready && consented && s.adsEnabled && s.bannerEnabled && !pro

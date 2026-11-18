@@ -22,6 +22,7 @@ class ProViewModel @Inject constructor(
     val price: StateFlow<String?> = billing.price
     val pending: StateFlow<Boolean> = billing.pending
     val productUnavailable: StateFlow<Boolean> = billing.productUnavailable
+    val adsRemoved: StateFlow<Boolean> = billing.adsRemoved
     val messages: Flow<BillingMessage> = billing.messages
 
     /** The Pro sheet is a sheet, not a route, so it reports its own view. */

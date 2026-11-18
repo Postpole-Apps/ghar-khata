@@ -64,6 +64,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.ColorLens
 import androidx.compose.material.icons.outlined.CurrencyRupee
 import androidx.compose.material.icons.outlined.FileUpload
@@ -81,6 +82,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import com.postpole.gharkhata.ui.pro.CrownIcon
+import com.postpole.gharkhata.ui.pro.findActivity
 import com.postpole.gharkhata.ui.provider.BadgeShape
 import com.postpole.gharkhata.ui.theme.GharShapesExtra
 import com.postpole.gharkhata.ui.theme.gharColors
@@ -94,6 +96,10 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
+    val hasRemoveAds by viewModel.hasRemoveAds.collectAsStateWithLifecycle()
+    val removeAdsPrice by viewModel.removeAdsPrice.collectAsStateWithLifecycle()
+    val removeAdsUnavailable by viewModel.removeAdsUnavailable.collectAsStateWithLifecycle()
+    val removeAdsPending by viewModel.removeAdsPending.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val dynamicColor by viewModel.dynamicColor.collectAsStateWithLifecycle()
     val currency by viewModel.defaultCurrency.collectAsStateWithLifecycle()
@@ -150,6 +156,13 @@ fun SettingsScreen(
     Box(Modifier.fillMaxSize()) {
         SettingsContent(
             isPro = isPro,
+            removeAds = removeAdsOffer(
+                isPro = isPro, hasRemoveAds = hasRemoveAds, price = removeAdsPrice,
+                unavailable = removeAdsUnavailable, pending = removeAdsPending,
+            ),
+            // Remove-ads-only users are sold Pro on features alone; ad removal is not re-sold.
+            proIncludesNoAds = BuildConfig.ADS_SHIPPING && !hasRemoveAds,
+            onRemoveAds = { context.findActivity()?.let(viewModel::buyRemoveAds) },
             themeMode = themeMode,
             dynamicColor = dynamicColor,
             currency = currency,
@@ -289,10 +302,25 @@ fun SettingsScreen(
     }
 }
 
+/** What the Remove ads row shows; null means the row is hidden (already owned, Pro, or no ads in this build). */
+internal data class RemoveAdsOffer(val price: String?, val unavailable: Boolean, val pending: Boolean)
+
+internal fun removeAdsOffer(
+    isPro: Boolean,
+    hasRemoveAds: Boolean,
+    price: String?,
+    unavailable: Boolean,
+    pending: Boolean,
+): RemoveAdsOffer? =
+    if (BuildConfig.ADS_SHIPPING && !isPro && !hasRemoveAds) RemoveAdsOffer(price, unavailable, pending) else null
+
 /** Stateless Settings (also used by the screenshot tests): hero Pro card on top, grouped sections below. */
 @Composable
 internal fun SettingsContent(
     isPro: Boolean,
+    removeAds: RemoveAdsOffer? = null,
+    proIncludesNoAds: Boolean = false,
+    onRemoveAds: () -> Unit = {},
     themeMode: ThemeMode,
     dynamicColor: Boolean,
     currency: String?,
@@ -324,7 +352,7 @@ internal fun SettingsContent(
             color = gk.onHero,
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 8.dp),
         )
-        ProHeroCard(isPro = isPro, onClick = onUpgrade)
+        ProHeroCard(isPro = isPro, includesNoAds = proIncludesNoAds, onClick = onUpgrade)
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
             TextButton(onClick = onRestorePurchases, modifier = Modifier.padding(end = 12.dp)) {
                 Text(stringResource(R.string.pro_restore), style = MaterialTheme.typography.titleMedium, color = gk.lime)
@@ -336,6 +364,25 @@ internal fun SettingsContent(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
+            if (removeAds != null) {
+                SectionHeader(R.string.settings_section_ads)
+                SettingsGroup {
+                    val buyable = removeAds.price != null && !removeAds.pending
+                    SettingsRow(
+                        Icons.Outlined.Block,
+                        removeAds.price?.let { stringResource(R.string.remove_ads_title_price, it) }
+                            ?: stringResource(R.string.remove_ads_title),
+                        when {
+                            removeAds.pending -> stringResource(R.string.remove_ads_pending)
+                            removeAds.unavailable && removeAds.price == null -> stringResource(R.string.remove_ads_unavailable)
+                            removeAds.price == null -> stringResource(R.string.remove_ads_loading)
+                            else -> stringResource(R.string.remove_ads_hint)
+                        },
+                        onClick = if (buyable) onRemoveAds else null,
+                    )
+                }
+            }
+
             SectionHeader(R.string.settings_section_data)
             SettingsGroup {
                 SettingsRow(Icons.Outlined.FileUpload, stringResource(R.string.backup_export_json), stringResource(R.string.backup_export_json_hint), onClick = onBackup)
@@ -398,7 +445,7 @@ internal fun SettingsContent(
 
 /** Upgrade to Pro hero card; shows the active state (not clickable) once Pro is owned. */
 @Composable
-private fun ProHeroCard(isPro: Boolean, onClick: () -> Unit) {
+private fun ProHeroCard(isPro: Boolean, includesNoAds: Boolean, onClick: () -> Unit) {
     val gk = MaterialTheme.gharColors
     Row(
         Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(GharShapesExtra.Card)
@@ -417,7 +464,13 @@ private fun ProHeroCard(isPro: Boolean, onClick: () -> Unit) {
                 style = MaterialTheme.typography.titleLarge, color = gk.onHero,
             )
             Text(
-                stringResource(if (isPro) R.string.settings_pro_active_subtitle else R.string.settings_pro_hero_subtitle),
+                stringResource(
+                    when {
+                        isPro -> R.string.settings_pro_active_subtitle
+                        includesNoAds -> R.string.settings_pro_hero_subtitle_no_ads
+                        else -> R.string.settings_pro_hero_subtitle
+                    },
+                ),
                 style = MaterialTheme.typography.bodyMedium, color = gk.onHeroVariant,
             )
         }

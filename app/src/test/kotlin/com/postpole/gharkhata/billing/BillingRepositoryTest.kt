@@ -44,12 +44,20 @@ private class FakeGateway : BillingGateway {
         return true
     }
 
-    override suspend fun queryProduct() = product
+    var removeAdsProduct: ProductResult = ProductResult.Loaded("play-price")
+    override suspend fun queryProducts() = mapOf(
+        BillingProduct.PRO to product,
+        BillingProduct.REMOVE_ADS to removeAdsProduct,
+    )
     override suspend fun queryPurchases(): List<OwnedPurchase>? {
         queryPurchasesCalls++
         return owned
     }
-    override fun launchPurchase(activity: Activity) = launchResult
+    val launched = mutableListOf<BillingProduct>()
+    override fun launchPurchase(activity: Activity, product: BillingProduct): Boolean {
+        launched += product
+        return launchResult
+    }
     var launchResult = true
     override suspend fun acknowledge(token: String): Boolean {
         acknowledged += token
@@ -314,6 +322,96 @@ class BillingRepositoryTest {
         gateway.updatesFlow.emit(PurchaseUpdate.Error(6))
         advanceUntilIdle()
         assertTrue(analytics.nonFatals.single() is BillingException)
+    }
+
+    private val removeAds = OwnedPurchase("ra", PurchaseStatus.PURCHASED, acknowledged = false, product = BillingProduct.REMOVE_ADS)
+
+    @Test fun removeAdsOnly_hidesAdsButKeepsProLocked() = runTest {
+        val repo = repo()
+        gateway.owned = listOf(removeAds)
+        repo.start()
+        advanceUntilIdle()
+        assertTrue(repo.adsRemoved.value)
+        assertTrue(repo.hasRemoveAds.value)
+        assertFalse(repo.isPro.value)
+        assertEquals(listOf("ra"), gateway.acknowledged)
+        assertEquals("play-price", repo.removeAdsPrice.value)
+    }
+
+    @Test fun proOnly_hidesAdsWithoutRemoveAds() = runTest {
+        val repo = repo()
+        gateway.owned = listOf(purchased)
+        repo.start()
+        advanceUntilIdle()
+        assertTrue(repo.adsRemoved.value)
+        assertTrue(repo.isPro.value)
+        assertFalse(repo.hasRemoveAds.value)
+    }
+
+    @Test fun restore_returnsBothEntitlements() = runTest {
+        val repo = repo()
+        repo.start()
+        advanceUntilIdle()
+        gateway.owned = listOf(purchased.copy(acknowledged = true), removeAds.copy(acknowledged = true))
+        repo.restore()
+        advanceUntilIdle()
+        assertTrue(repo.isPro.value)
+        assertTrue(repo.hasRemoveAds.value)
+    }
+
+    @Test fun refundingOne_leavesTheOther() = runTest {
+        val repo = repo()
+        gateway.owned = listOf(purchased.copy(acknowledged = true), removeAds.copy(acknowledged = true))
+        repo.start()
+        advanceUntilIdle()
+        gateway.owned = listOf(removeAds.copy(acknowledged = true)) // Pro refunded
+        repo.restore()
+        advanceUntilIdle()
+        assertFalse(repo.isPro.value)
+        assertTrue(repo.hasRemoveAds.value)
+        assertTrue(repo.adsRemoved.value)
+        gateway.owned = listOf(purchased.copy(acknowledged = true)) // Pro back, Remove ads refunded
+        repo.restore()
+        advanceUntilIdle()
+        assertTrue(repo.isPro.value)
+        assertFalse(repo.hasRemoveAds.value)
+        assertTrue(repo.adsRemoved.value)
+        gateway.owned = emptyList()
+        repo.restore()
+        advanceUntilIdle()
+        assertFalse(repo.adsRemoved.value)
+    }
+
+    @Test fun removeAdsPending_doesNotHideAds() = runTest {
+        val repo = repo()
+        gateway.owned = listOf(removeAds.copy(status = PurchaseStatus.PENDING))
+        repo.start()
+        advanceUntilIdle()
+        assertFalse(repo.adsRemoved.value)
+        assertTrue(repo.removeAdsPending.value)
+        assertFalse(repo.pending.value)
+    }
+
+    @Test fun missingRemoveAdsProduct_isUnavailableAndProUnaffected() = runTest {
+        val repo = repo()
+        gateway.removeAdsProduct = ProductResult.Unavailable
+        repo.start()
+        advanceUntilIdle()
+        assertTrue(repo.removeAdsUnavailable.value)
+        assertEquals(null, repo.removeAdsPrice.value)
+        assertFalse(repo.productUnavailable.value)
+        assertEquals("$4.99", repo.price.value)
+    }
+
+    @Test fun removeAdsPurchase_logsNoProPurchaseEvent() = runTest {
+        val analytics = RecordingAnalytics()
+        val repo = repoWith(analytics)
+        repo.start()
+        advanceUntilIdle()
+        gateway.updatesFlow.emit(PurchaseUpdate.Purchases(listOf(removeAds)))
+        advanceUntilIdle()
+        assertTrue(repo.adsRemoved.value)
+        assertTrue(analytics.events.isEmpty())
     }
 
     @Test fun connect_givesUpAfterMaxAttempts() = runTest {

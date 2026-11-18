@@ -45,6 +45,10 @@ class SettingsViewModel @Inject constructor(
     private val reminders: com.postpole.gharkhata.reminder.ReminderController,
 ) : ViewModel() {
     val isPro: StateFlow<Boolean> = billing.isPro
+    val hasRemoveAds: StateFlow<Boolean> = billing.hasRemoveAds
+    val removeAdsPrice: StateFlow<String?> = billing.removeAdsPrice
+    val removeAdsUnavailable: StateFlow<Boolean> = billing.removeAdsUnavailable
+    val removeAdsPending: StateFlow<Boolean> = billing.removeAdsPending
 
     val themeMode: StateFlow<ThemeMode> = settings.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.SYSTEM)
@@ -78,6 +82,11 @@ class SettingsViewModel @Inject constructor(
 
     fun clearReminder() {
         viewModelScope.launch { reminders.disable() }
+    }
+
+    /** Starts the one-time `remove_ads` purchase; Pro features are untouched by it. */
+    fun buyRemoveAds(activity: android.app.Activity) {
+        billing.launchPurchase(activity, com.postpole.gharkhata.billing.BillingProduct.REMOVE_ADS)
     }
 
     fun restore() {
