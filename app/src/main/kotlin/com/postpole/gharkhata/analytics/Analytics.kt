@@ -16,6 +16,12 @@ object AnalyticsEvents {
     const val DAY_MARKED = "day_marked"
     const val BILL_SHARED = "bill_shared"
     const val SETTLEMENT_SAVED = "settlement_saved"
+
+    // Remove ads funnel. Kept separate from the Pro events above so Pro conversion stays clean.
+    const val REMOVE_ADS_PAYWALL_VIEW = "remove_ads_paywall_view"
+    const val REMOVE_ADS_PURCHASE_START = "remove_ads_purchase_start"
+    const val REMOVE_ADS_PURCHASE_SUCCESS = "remove_ads_purchase_success"
+    const val REMOVE_ADS_PURCHASE_FAIL = "remove_ads_purchase_fail"
 }
 
 object AnalyticsParams {
@@ -27,6 +33,8 @@ object AnalyticsParams {
     const val FORMAT = "format"
     const val PROVIDER_TYPE = "provider_type"
     const val STATUS = "status"
+    const val PRODUCT_ID = "product_id"
+    const val PRICE_MICROS = "price_micros"
 }
 
 /**

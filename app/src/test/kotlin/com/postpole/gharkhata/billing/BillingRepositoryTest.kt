@@ -418,6 +418,100 @@ class BillingRepositoryTest {
         assertTrue(analytics.nonFatals.single() is BillingException)
     }
 
+    private val removeAdsPurchased = OwnedPurchase(Product.REMOVE_ADS, "tok-ra", PurchaseStatus.PURCHASED, acknowledged = false)
+
+    /** The fake gateway never touches the Activity, so an uninitialised instance is enough. */
+    private fun fakeActivity(): Activity {
+        val unsafeClass = Class.forName("sun.misc.Unsafe")
+        val unsafe = unsafeClass.getDeclaredField("theUnsafe").apply { isAccessible = true }.get(null)
+        return unsafeClass.getMethod("allocateInstance", Class::class.java).invoke(unsafe, Activity::class.java) as Activity
+    }
+
+    private fun names(a: RecordingAnalytics) =a.events.map { it.first }
+
+    private suspend fun TestScope.startedWithRemoveAdsPrice(a: RecordingAnalytics): BillingRepository {
+        val repo = repoWith(a)
+        gateway.removeAdsProduct = ProductResult.Loaded("R", priceMicros = 99_000_000, currencyCode = "INR", productId = "remove_ads")
+        gateway.product = ProductResult.Loaded("P", priceMicros = 499_000_000, currencyCode = "INR", productId = "pro")
+        repo.start()
+        advanceUntilIdle()
+        return repo
+    }
+
+    @Test fun removeAds_start_logsRemoveAdsStartNotProStarted() = runTest {
+        val a = RecordingAnalytics()
+        val repo = startedWithRemoveAdsPrice(a)
+        repo.launchPurchase(fakeActivity(), Product.REMOVE_ADS)
+        assertEquals(listOf("remove_ads_purchase_start"), names(a))
+        val p = a.events.single().second
+        assertEquals("remove_ads", p["product_id"])
+        assertEquals(99_000_000L, p["price_micros"])
+        assertEquals("INR", p["currency"])
+    }
+
+    @Test fun removeAds_success_logsOnceAndNoProEvents() = runTest {
+        val a = RecordingAnalytics()
+        val repo = startedWithRemoveAdsPrice(a)
+        repo.launchPurchase(fakeActivity(), Product.REMOVE_ADS)
+        gateway.updatesFlow.emit(PurchaseUpdate.Purchases(listOf(removeAdsPurchased)))
+        advanceUntilIdle()
+        gateway.updatesFlow.emit(PurchaseUpdate.Purchases(listOf(removeAdsPurchased)))
+        advanceUntilIdle()
+        assertEquals(listOf("remove_ads_purchase_start", "remove_ads_purchase_success"), names(a))
+        assertEquals("remove_ads", a.events.last().second["product_id"])
+    }
+
+    @Test fun removeAds_cancelAndError_logFail() = runTest {
+        val a = RecordingAnalytics()
+        val repo = startedWithRemoveAdsPrice(a)
+        val act = fakeActivity()
+        repo.launchPurchase(act, Product.REMOVE_ADS)
+        gateway.updatesFlow.emit(PurchaseUpdate.Canceled)
+        advanceUntilIdle()
+        repo.launchPurchase(act, Product.REMOVE_ADS)
+        gateway.updatesFlow.emit(PurchaseUpdate.Error(6))
+        advanceUntilIdle()
+        assertEquals(2, names(a).count { it == "remove_ads_purchase_fail" })
+    }
+
+    @Test fun removeAds_launchFailure_logsFail() = runTest {
+        val a = RecordingAnalytics()
+        val repo = startedWithRemoveAdsPrice(a)
+        gateway.launchResult = false
+        repo.launchPurchase(fakeActivity(), Product.REMOVE_ADS)
+        assertEquals(listOf("remove_ads_purchase_fail"), names(a))
+    }
+
+    @Test fun removeAds_foundOnRefresh_logsNothing() = runTest {
+        val a = RecordingAnalytics()
+        gateway.owned = listOf(removeAdsPurchased.copy(acknowledged = true))
+        val repo = repoWith(a)
+        repo.start()
+        advanceUntilIdle()
+        assertTrue(repo.hasRemoveAds.value)
+        assertEquals(emptyList<String>(), names(a))
+    }
+
+    @Test fun pro_purchase_keepsProEventsWithProductId_andNoRemoveAdsEvents() = runTest {
+        val a = RecordingAnalytics()
+        val repo = startedWithRemoveAdsPrice(a)
+        repo.launchPurchase(fakeActivity(), Product.PRO)
+        gateway.updatesFlow.emit(PurchaseUpdate.Purchases(listOf(purchased)))
+        advanceUntilIdle()
+        assertEquals(listOf("purchase_started", "purchase"), names(a))
+        assertEquals("pro", a.events.last().second["product_id"])
+        assertEquals("INR", a.events.last().second["currency"])
+    }
+
+    @Test fun pro_cancel_logsNoRemoveAdsFail() = runTest {
+        val a = RecordingAnalytics()
+        val repo = startedWithRemoveAdsPrice(a)
+        repo.launchPurchase(fakeActivity(), Product.PRO)
+        gateway.updatesFlow.emit(PurchaseUpdate.Canceled)
+        advanceUntilIdle()
+        assertEquals(listOf("purchase_started"), names(a))
+    }
+
     @Test fun connect_givesUpAfterMaxAttempts() = runTest {
         val repo = repo()
         gateway.connectFailures = 10

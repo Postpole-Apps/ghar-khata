@@ -52,6 +52,11 @@ class SettingsViewModel @Inject constructor(
     val removeAdsPending: StateFlow<Boolean> = billing.removeAdsPending
     val removeAdsUnavailable: StateFlow<Boolean> = billing.removeAdsUnavailable
 
+    /** Call when the Remove ads offer is actually purchasable on screen (not on every Settings open). */
+    fun onRemoveAdsPaywallShown() {
+        analytics.logEvent(AnalyticsEvents.REMOVE_ADS_PAYWALL_VIEW)
+    }
+
     fun buyRemoveAds(activity: Activity) {
         billing.launchPurchase(activity, Product.REMOVE_ADS)
     }

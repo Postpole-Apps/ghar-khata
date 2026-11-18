@@ -47,6 +47,10 @@ class BillingRepository(
 ) {
     private enum class Source { PURCHASE_FLOW, REFRESH }
 
+    /** Product whose purchase sheet is open; lets cancel/error updates (which carry no product) be attributed. */
+    @Volatile
+    private var launchedProduct: Product? = null
+
     @Volatile
     private var loadedPro: ProductResult.Loaded? = null
 
@@ -169,8 +173,16 @@ class BillingRepository(
     fun launchPurchase(activity: Activity, product: Product = Product.PRO): Boolean {
         val launched = gateway.launchPurchase(activity, product)
         if (launched) {
-            analytics.logEvent(AnalyticsEvents.PURCHASE_STARTED)
+            launchedProduct = product
+            analytics.logEvent(
+                if (product == Product.PRO) AnalyticsEvents.PURCHASE_STARTED else AnalyticsEvents.REMOVE_ADS_PURCHASE_START,
+                purchaseParams(product),
+            )
         } else {
+            launchedProduct = null
+            if (product == Product.REMOVE_ADS) {
+                analytics.logEvent(AnalyticsEvents.REMOVE_ADS_PURCHASE_FAIL, purchaseParams(product))
+            }
             analytics.recordNonFatal(BillingException("Could not launch purchase flow"))
             _messages.trySend(BillingMessage.LAUNCH_FAILED)
         }
@@ -181,12 +193,39 @@ class BillingRepository(
         when (update) {
             is PurchaseUpdate.Purchases ->
                 applyPurchases(update.purchases, revokeIfAbsent = false, source = Source.PURCHASE_FLOW)
-            PurchaseUpdate.AlreadyOwned -> refresh()
-            PurchaseUpdate.Canceled -> Unit
+            PurchaseUpdate.AlreadyOwned -> {
+                launchedProduct = null
+                refresh()
+            }
+            PurchaseUpdate.Canceled -> logRemoveAdsFail()
             is PurchaseUpdate.Error -> {
+                logRemoveAdsFail()
                 log("Purchase failed with code ${update.code}")
                 analytics.recordNonFatal(BillingException("Purchase failed with code ${update.code}"))
                 _messages.trySend(BillingMessage.PURCHASE_ERROR)
+            }
+        }
+    }
+
+    /** Cancel / Play error for the sheet that is open. Only Remove ads has a fail event; Pro logs nothing. */
+    private fun logRemoveAdsFail() {
+        val product = launchedProduct
+        launchedProduct = null
+        if (product == Product.REMOVE_ADS) {
+            analytics.logEvent(AnalyticsEvents.REMOVE_ADS_PURCHASE_FAIL, purchaseParams(product))
+        }
+    }
+
+    /** product_id, price_micros, value and currency, each only when known. No personal data. */
+    private fun purchaseParams(product: Product): Map<String, Any> {
+        val loaded = if (product == Product.PRO) loadedPro else loadedRemoveAds
+        return buildMap {
+            if (loaded == null) return@buildMap
+            if (loaded.productId.isNotEmpty()) put(AnalyticsParams.PRODUCT_ID, loaded.productId)
+            if (loaded.priceMicros > 0 && loaded.currencyCode.isNotEmpty()) {
+                put(AnalyticsParams.PRICE_MICROS, loaded.priceMicros)
+                put(AnalyticsParams.VALUE, loaded.priceMicros / 1_000_000.0)
+                put(AnalyticsParams.CURRENCY, loaded.currencyCode)
             }
         }
     }
@@ -205,6 +244,7 @@ class BillingRepository(
             }
             val key = if (product == Product.PRO) IS_PRO else HAS_REMOVE_ADS
             if (purchased.isNotEmpty()) {
+                if (source == Source.PURCHASE_FLOW && launchedProduct == product) launchedProduct = null
                 val was = dataStore.data.first()[key] ?: false
                 dataStore.edit { it[key] = true }
                 if (!was) logPurchaseEvent(source, product)
@@ -215,20 +255,20 @@ class BillingRepository(
         }
     }
 
-    /** `purchase` (with value + currency) for a fresh buy, `purchase_restored` when found on refresh/restore. */
+    /**
+     * Pro: `purchase` for a fresh buy, `purchase_restored` when found on refresh/restore.
+     * Remove ads: `remove_ads_purchase_success` for a fresh buy only; finding it on refresh/restore logs nothing.
+     */
     private fun logPurchaseEvent(source: Source, product: Product) {
-        when (source) {
-            Source.PURCHASE_FLOW -> {
-                val loaded = if (product == Product.PRO) loadedPro else loadedRemoveAds
-                val params = buildMap<String, Any> {
-                    if (loaded != null && loaded.priceMicros > 0 && loaded.currencyCode.isNotEmpty()) {
-                        put(AnalyticsParams.VALUE, loaded.priceMicros / 1_000_000.0)
-                        put(AnalyticsParams.CURRENCY, loaded.currencyCode)
-                    }
-                }
-                analytics.logEvent(AnalyticsEvents.PURCHASE, params)
+        when (product) {
+            Product.PRO -> when (source) {
+                Source.PURCHASE_FLOW -> analytics.logEvent(AnalyticsEvents.PURCHASE, purchaseParams(product))
+                Source.REFRESH -> analytics.logEvent(AnalyticsEvents.PURCHASE_RESTORED, purchaseParams(product))
             }
-            Source.REFRESH -> analytics.logEvent(AnalyticsEvents.PURCHASE_RESTORED)
+            Product.REMOVE_ADS ->
+                if (source == Source.PURCHASE_FLOW) {
+                    analytics.logEvent(AnalyticsEvents.REMOVE_ADS_PURCHASE_SUCCESS, purchaseParams(product))
+                }
         }
     }
 

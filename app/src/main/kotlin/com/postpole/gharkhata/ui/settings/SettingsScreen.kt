@@ -152,6 +152,16 @@ fun SettingsScreen(
         viewModel.events.collect { snackbarHostState.showSnackbar(messages(it)) }
     }
 
+    val removeAdsPurchasable = removeAdsOffer(
+        isPro = isPro,
+        hasRemoveAds = hasRemoveAds,
+        price = removeAdsPrice,
+        pending = removeAdsPending,
+        unavailable = removeAdsUnavailable,
+    ) is RemoveAdsOffer.Price
+    // Once per time the buyable offer appears, not on every Settings open.
+    LaunchedEffect(removeAdsPurchasable) { if (removeAdsPurchasable) viewModel.onRemoveAdsPaywallShown() }
+
     Box(Modifier.fillMaxSize()) {
         SettingsContent(
             isPro = isPro,
