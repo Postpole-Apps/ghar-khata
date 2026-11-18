@@ -1,6 +1,6 @@
 # Ghar Khata
 
-A household khata for milk, maid, newspaper and similar home services. Track deliveries and visits, and see what is owed. Your data stays on your device, with no accounts. The ads-shipping build shows ads; Pro or the one-time Remove ads purchase hides them.
+A household khata for milk, maid, newspaper and similar home services. Track deliveries and visits, and see what is owed. Your data is stored on your device, with no accounts. The ads-shipping build shows ads; Pro or the one-time Remove ads purchase hides them.
 
 Package: `com.postpole.gharkhata`. This app was started from the Postpole Apps Android template (`Postpole-Apps/android-app-template`); see [docs/NEW_APP.md](docs/NEW_APP.md).
 
