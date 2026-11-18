@@ -123,6 +123,7 @@ class PlayBillingGateway(
             formattedPrice = chosen.first.formattedPrice,
             priceMicros = chosen.first.priceAmountMicros,
             currencyCode = chosen.first.priceCurrencyCode,
+            productId = details.productId,
         )
     }
 

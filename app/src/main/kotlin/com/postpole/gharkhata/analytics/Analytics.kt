@@ -16,6 +16,13 @@ object AnalyticsEvents {
     const val DAY_MARKED = "day_marked"
     const val BILL_SHARED = "bill_shared"
     const val SETTLEMENT_SAVED = "settlement_saved"
+
+    // Remove ads (ads-era). Pro keeps its own events above; these never fire for Pro and vice versa.
+    const val REMOVE_ADS_PAYWALL_VIEW = "remove_ads_paywall_view"
+    const val REMOVE_ADS_PURCHASE_START = "remove_ads_purchase_start"
+    const val REMOVE_ADS_PURCHASE_SUCCESS = "remove_ads_purchase_success"
+    const val REMOVE_ADS_PURCHASE_FAIL = "remove_ads_purchase_fail"
+    const val AD_PAYWALL_ENTRY = "ad_paywall_entry"
 }
 
 object AnalyticsParams {
@@ -27,6 +34,24 @@ object AnalyticsParams {
     const val FORMAT = "format"
     const val PROVIDER_TYPE = "provider_type"
     const val STATUS = "status"
+    const val PRICE_MICROS = "price_micros"
+
+    /** Enum-only entry point, see [AdPaywallSources]. Never free text. */
+    const val SOURCE = "source"
+
+    /** Enum-only failure reason, see [PurchaseFailReasons]. */
+    const val REASON = "reason"
+}
+
+object AdPaywallSources {
+    const val SETTINGS_ROW = "settings_row"
+}
+
+object PurchaseFailReasons {
+    const val CANCELED = "canceled"
+    const val LAUNCH_FAILED = "launch_failed"
+    const val BILLING_ERROR = "billing_error"
+    const val ALREADY_OWNED = "already_owned"
 }
 
 /**

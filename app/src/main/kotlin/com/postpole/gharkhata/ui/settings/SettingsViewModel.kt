@@ -5,6 +5,7 @@ import android.app.Activity
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.postpole.gharkhata.analytics.AdPaywallSources
 import com.postpole.gharkhata.analytics.Analytics
 import com.postpole.gharkhata.analytics.AnalyticsEvents
 import com.postpole.gharkhata.analytics.AnalyticsParams
@@ -52,7 +53,20 @@ class SettingsViewModel @Inject constructor(
     val removeAdsPending: StateFlow<Boolean> = billing.removeAdsPending
     val removeAdsUnavailable: StateFlow<Boolean> = billing.removeAdsUnavailable
 
+    private var removeAdsViewLogged = false
+
+    /** Logged once per Settings visit when a purchasable Remove ads offer is on screen. */
+    fun onRemoveAdsOfferShown() {
+        if (removeAdsViewLogged) return
+        removeAdsViewLogged = true
+        analytics.logEvent(AnalyticsEvents.REMOVE_ADS_PAYWALL_VIEW)
+    }
+
     fun buyRemoveAds(activity: Activity) {
+        analytics.logEvent(
+            AnalyticsEvents.AD_PAYWALL_ENTRY,
+            mapOf(AnalyticsParams.SOURCE to AdPaywallSources.SETTINGS_ROW),
+        )
         billing.launchPurchase(activity, Product.REMOVE_ADS)
     }
 

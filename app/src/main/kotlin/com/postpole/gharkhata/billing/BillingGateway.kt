@@ -23,6 +23,8 @@ sealed interface ProductResult {
         val priceMicros: Long = 0,
         /** ISO 4217 code, empty if unknown. */
         val currencyCode: String = "",
+        /** Play product id (e.g. for analytics), empty if unknown. */
+        val productId: String = "",
     ) : ProductResult
 
     /** Play answered but the product (or its purchasable offer) is not available. */
