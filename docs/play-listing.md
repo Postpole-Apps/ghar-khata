@@ -4,7 +4,7 @@
 Ghar Khata - Milk & Maid Bill
 
 ## Short description (72 chars)
-Mark milk, maid & newspaper days. Auto monthly bill. No ads, no sign-up.
+Mark milk, maid & newspaper days. Auto monthly bill. No sign-up needed.
 
 ## Category
 House & Home (not Finance)
@@ -26,13 +26,16 @@ Newspaper copies per day, water can deliveries, cook or driver visits: pick per 
 Send the bill as text on WhatsApp. Pro adds a bill image or PDF.
 
 **Private and simple**
-Your data stays on your device. No account, no sign-up, no ads. Back up your data to a file you choose, and restore it any time. Backup is always free. Usage analytics and crash reports (not your diary entries) are described in the Privacy Policy.
+Your data stays on your device. No account, no sign-up. The free version shows ads; you can remove them with a one-time purchase. Ad and data choices are in Settings > Privacy options. Back up your data to a file you choose, and restore it any time. Backup is always free. Usage analytics and crash reports (not your diary entries) are described in the Privacy Policy.
 
 **Free**
 Marking days, rates, paid leaves, the monthly bill and backup are free for up to 3 providers.
 
 **Pro (one-time purchase, no subscription)**
-Unlimited providers, bill as image or PDF, CSV export, year summary and a daily "mark today" reminder.
+Unlimited providers, bill as image or PDF, CSV export, year summary, a daily "mark today" reminder, and no ads.
+
+**Remove ads (one-time purchase)**
+Just want the ads gone? Remove ads hides them. Pro features stay locked.
 
 Available in English and Hindi (follows your phone's language).
 
@@ -47,4 +50,5 @@ Answer: **"My app doesn't provide any financial features."**
 
 ## Other
 - Privacy policy URL and support email are set in `app/src/main/res/values/app_config.xml`.
-- Permissions: INTERNET and AD_ID (analytics), POST_NOTIFICATIONS (optional Pro reminder). No SMS, contacts, location, storage or exact-alarm permissions.
+- Contains ads: the ads-shipping build shows ads (Google Mobile Ads, UMP consent). Declare in Play Console at release time (not done by this change).
+- Permissions: INTERNET and AD_ID (analytics and ads), POST_NOTIFICATIONS (optional Pro reminder). No SMS, contacts, location, storage or exact-alarm permissions.
