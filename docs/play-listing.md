@@ -3,8 +3,8 @@
 ## Title (29 chars)
 Ghar Khata - Milk & Maid Bill
 
-## Short description (72 chars)
-Mark milk, maid & newspaper days. Auto monthly bill. No ads, no sign-up.
+## Short description (63 chars)
+Mark milk, maid & newspaper days. Auto monthly bill. No sign-up.
 
 ## Category
 House & Home (not Finance)
@@ -26,7 +26,7 @@ Newspaper copies per day, water can deliveries, cook or driver visits: pick per 
 Send the bill as text on WhatsApp. Pro adds a bill image or PDF.
 
 **Private and simple**
-Your data stays on your device. No account, no sign-up, no ads. Back up your data to a file you choose, and restore it any time. Backup is always free. Usage analytics and crash reports (not your diary entries) are described in the Privacy Policy.
+Your diary data stays on your device. No account, no sign-up. The app shows ads, which Pro removes. Back up your data to a file you choose, and restore it any time. Backup is always free. Usage analytics and crash reports (not your diary entries) are described in the Privacy Policy.
 
 **Free**
 Marking days, rates, paid leaves, the monthly bill and backup are free for up to 3 providers.
@@ -48,3 +48,15 @@ Answer: **"My app doesn't provide any financial features."**
 ## Other
 - Privacy policy URL and support email are set in `app/src/main/res/values/app_config.xml`.
 - Permissions: INTERNET and AD_ID (analytics), POST_NOTIFICATIONS (optional Pro reminder). No SMS, contacts, location, storage or exact-alarm permissions.
+
+## Release and QA checklist (issue #26, ads build only)
+Do these in the same release as the ads-containing AAB. If compliance is not ready, production ships ad-free and this checklist repeats in the later ads update.
+
+- [ ] Play Console: Contains ads = **Yes**, in the same release as the first ads.
+- [ ] Data safety per the full AdMob disclosure (https://developers.google.com/admob/android/privacy/play-data-disclosure): Device or other IDs, Approximate location, App interactions and Diagnostics are Collected and Shared (Advertising, Analytics, Fraud prevention/security/compliance); Crash logs collected, not shared; Purchase history collected, not shared; diary names, phones and attendance not collected; encrypted in transit: Yes.
+- [ ] Advertising ID declaration: Yes (Advertising or marketing, Analytics, Fraud prevention, Personalization after consent).
+- [ ] Publish the policy from `gharkhata-privacy-ads.md` (set "Last updated"), then confirm `privacy_policy_url` in `app_config.xml` matches the published page.
+- [ ] Developer website: https://pocket-ledger-postpole.web.app
+- [ ] Target audience 18+ only; Designed for children: No.
+- [ ] Feature graphic: rebuild from `store-graphics` (outside this repo) with the pill "Your data stays on your device · No sign-up · English & हिन्दी", then upload.
+- [ ] Update listing copy in the Console to match this file; check screenshots for a leftover "No ads" pill.
