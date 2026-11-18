@@ -3,7 +3,7 @@
 ## Title (29 chars)
 Ghar Khata - Milk & Maid Bill
 
-## Short description (72 chars)
+## Short description (71 chars)
 Mark milk, maid & newspaper days. Auto monthly bill. No sign-up needed.
 
 ## Category
@@ -26,7 +26,7 @@ Newspaper copies per day, water can deliveries, cook or driver visits: pick per 
 Send the bill as text on WhatsApp. Pro adds a bill image or PDF.
 
 **Private and simple**
-Your data stays on your device. No account, no sign-up. The free version shows ads; you can remove them with a one-time purchase. Ad and data choices are in Settings > Privacy options. Back up your data to a file you choose, and restore it any time. Backup is always free. Usage analytics and crash reports (not your diary entries) are described in the Privacy Policy.
+Your data stays on your device. No account, no sign-up. The free version shows ads; you can remove them with a one-time purchase. Ad and data practices are described in the Privacy Policy; in regions that require it (such as the EEA, UK and Switzerland), ad choices are also available under Settings > Privacy options. Back up your data to a file you choose, and restore it any time. Backup is always free. Usage analytics and crash reports (not your diary entries) are described in the Privacy Policy.
 
 **Free**
 Marking days, rates, paid leaves, the monthly bill and backup are free for up to 3 providers.
