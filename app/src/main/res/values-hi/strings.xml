@@ -284,6 +284,12 @@
     <string name="pro_benefit_csv">हाज़िरी और बिलों का CSV एक्सपोर्ट</string>
     <string name="pro_benefit_reminder">रोज़ \"आज दर्ज करें\" रिमाइंडर</string>
     <string name="pro_benefit_year">हर सेवा के लिए साल का सारांश</string>
+    <string name="pro_benefit_no_ads">कोई विज्ञापन नहीं</string>
+    <string name="remove_ads_buy">विज्ञापन हटाएँ — %1$s</string>
+    <string name="remove_ads_note">सिर्फ़ विज्ञापन हटते हैं। Pro सुविधाएँ बंद रहेंगी।</string>
+    <string name="remove_ads_pending">विज्ञापन हटाने का भुगतान लंबित है। भुगतान पूरा होते ही विज्ञापन हट जाएँगे।</string>
+    <string name="remove_ads_unavailable">विज्ञापन हटाने का विकल्प अभी उपलब्ध नहीं है। कृपया बाद में कोशिश करें।</string>
+    <string name="settings_pro_hero_subtitle_no_ads">एक बार का भुगतान · Pro की सारी सुविधाएँ: असीमित प्रोवाइडर, बिल इमेज या PDF, CSV, और कोई विज्ञापन नहीं</string>
     <string name="pro_always_free">हमेशा मुफ़्त: हाज़िरी दर्ज करना, दरें, सवेतन छुट्टियाँ, बकाया और बैकअप।</string>
     <string name="pro_sheet_close">बंद करें</string>
     <string name="pro_badge">Pro</string>

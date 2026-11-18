@@ -5,13 +5,17 @@ import kotlinx.coroutines.flow.Flow
 
 enum class PurchaseStatus { PURCHASED, PENDING, UNSPECIFIED }
 
+/** The two one-time INAPP products. Pro gates features; [REMOVE_ADS] only hides ads. */
+enum class Product { PRO, REMOVE_ADS }
+
 data class OwnedPurchase(
+    val product: Product,
     val token: String,
     val status: PurchaseStatus,
     val acknowledged: Boolean,
 )
 
-/** Result of loading the Pro product from Play. */
+/** Result of loading one product from Play. */
 sealed interface ProductResult {
     data class Loaded(
         val formattedPrice: String,
@@ -52,13 +56,14 @@ interface BillingGateway {
     /** Returns true when connected (no-op if already connected). */
     suspend fun connect(): Boolean
 
-    suspend fun queryProduct(): ProductResult
+    /** Loads details for every [Product] (one entry per product). */
+    suspend fun queryProducts(): Map<Product, ProductResult>
 
-    /** Purchases of the Pro product currently owned, or null if the query failed. */
+    /** Purchases of either product currently owned, or null if the query failed. */
     suspend fun queryPurchases(): List<OwnedPurchase>?
 
     /** Launches the Play purchase sheet. Returns false if it could not be launched. */
-    fun launchPurchase(activity: Activity): Boolean
+    fun launchPurchase(activity: Activity, product: Product): Boolean
 
     suspend fun acknowledge(token: String): Boolean
 }
