@@ -65,6 +65,12 @@ android {
         // One-time in-app product id for the Pro unlock. Override with -PproProductId=... if needed.
         val proProductId = providers.gradleProperty("proProductId").getOrElse("lifetime_full_access")
         buildConfigField("String", "PRO_PRODUCT_ID", "\"$proProductId\"")
+
+        // True for the build that ships ads (closed test and any production build with ads). Gates the
+        // truthful "No ads" Pro bullet and the Remove ads purchase row. Pass -PadsShipping=false for a
+        // production build that launches without ads.
+        val adsShipping = providers.gradleProperty("adsShipping").getOrElse("true")
+        buildConfigField("boolean", "ADS_SHIPPING", adsShipping)
     }
 
     signingConfigs {

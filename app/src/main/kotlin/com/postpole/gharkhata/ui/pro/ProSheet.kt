@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CalendarViewMonth
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.NotificationsActive
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.postpole.gharkhata.BuildConfig
 import com.postpole.gharkhata.R
 import com.postpole.gharkhata.billing.BillingMessage
 import com.postpole.gharkhata.ui.provider.BadgeShape
@@ -71,6 +73,8 @@ data class ProSheetState(
     val pending: Boolean = false,
     val unavailable: Boolean = false,
     val canBuy: Boolean = true,
+    /** Show the "No ads" benefit: only in the ads-shipping build, and not to someone who already removed ads. */
+    val showNoAds: Boolean = false,
 )
 
 /**
@@ -101,6 +105,7 @@ fun ProSheet(
     val price by viewModel.price.collectAsStateWithLifecycle()
     val pending by viewModel.pending.collectAsStateWithLifecycle()
     val unavailable by viewModel.productUnavailable.collectAsStateWithLifecycle()
+    val hasRemoveAds by viewModel.hasRemoveAds.collectAsStateWithLifecycle()
     val activity = LocalContext.current.findActivity()
     LaunchedEffect(viewModel) { viewModel.onShown() }
     // Once the purchase goes through the sheet has done its job.
@@ -115,7 +120,11 @@ fun ProSheet(
     ) {
         Box {
             ProSheetContent(
-                state = ProSheetState(isPro, price, pending, unavailable, canBuy = activity != null),
+                state = ProSheetState(
+                    isPro, price, pending, unavailable,
+                    canBuy = activity != null,
+                    showNoAds = BuildConfig.ADS_SHIPPING && !hasRemoveAds,
+                ),
                 reason = reason,
                 onBuy = { activity?.let(viewModel::buy) },
                 onRestore = viewModel::restore,
@@ -186,6 +195,9 @@ internal fun ProSheetContent(
                 BenefitCard(Icons.Outlined.NotificationsActive, cs.primaryContainer, cs.onPrimaryContainer, stringResource(R.string.pro_benefit_reminder), null, Modifier.weight(1f))
             }
             BenefitCard(Icons.Outlined.CalendarViewMonth, gk.hero, gk.lime, stringResource(R.string.pro_benefit_year), null, Modifier.fillMaxWidth(), wide = true)
+            if (state.showNoAds) {
+                BenefitCard(Icons.Outlined.Block, cs.secondaryContainer, cs.onSecondaryContainer, stringResource(R.string.pro_benefit_no_ads), null, Modifier.fillMaxWidth(), wide = true)
+            }
 
             Row(
                 Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).background(cs.primaryContainer).padding(16.dp),

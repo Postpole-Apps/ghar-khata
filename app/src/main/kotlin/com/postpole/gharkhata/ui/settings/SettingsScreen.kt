@@ -51,6 +51,7 @@ import com.postpole.gharkhata.data.ThemeMode
 import com.postpole.gharkhata.ui.pro.ProBadge
 import com.postpole.gharkhata.ui.pro.ProReason
 import com.postpole.gharkhata.ui.pro.ProSheet
+import com.postpole.gharkhata.ui.pro.findActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -94,6 +95,10 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
+    val hasRemoveAds by viewModel.hasRemoveAds.collectAsStateWithLifecycle()
+    val removeAdsPrice by viewModel.removeAdsPrice.collectAsStateWithLifecycle()
+    val removeAdsPending by viewModel.removeAdsPending.collectAsStateWithLifecycle()
+    val removeAdsUnavailable by viewModel.removeAdsUnavailable.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val dynamicColor by viewModel.dynamicColor.collectAsStateWithLifecycle()
     val currency by viewModel.defaultCurrency.collectAsStateWithLifecycle()
@@ -150,6 +155,14 @@ fun SettingsScreen(
     Box(Modifier.fillMaxSize()) {
         SettingsContent(
             isPro = isPro,
+            removeAds = removeAdsOffer(
+                isPro = isPro,
+                hasRemoveAds = hasRemoveAds,
+                price = removeAdsPrice,
+                pending = removeAdsPending,
+                unavailable = removeAdsUnavailable,
+            ),
+            onRemoveAds = { context.findActivity()?.let(viewModel::buyRemoveAds) },
             themeMode = themeMode,
             dynamicColor = dynamicColor,
             currency = currency,
@@ -293,6 +306,8 @@ fun SettingsScreen(
 @Composable
 internal fun SettingsContent(
     isPro: Boolean,
+    removeAds: RemoveAdsOffer? = null,
+    onRemoveAds: () -> Unit = {},
     themeMode: ThemeMode,
     dynamicColor: Boolean,
     currency: String?,
@@ -324,7 +339,9 @@ internal fun SettingsContent(
             color = gk.onHero,
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 8.dp),
         )
-        ProHeroCard(isPro = isPro, onClick = onUpgrade)
+        // Pro is only pitched as "everything + no ads" while ads are still on for this user.
+        ProHeroCard(isPro = isPro, includesNoAds = removeAds != null, onClick = onUpgrade)
+        if (removeAds != null) RemoveAdsRow(removeAds, onRemoveAds)
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
             TextButton(onClick = onRestorePurchases, modifier = Modifier.padding(end = 12.dp)) {
                 Text(stringResource(R.string.pro_restore), style = MaterialTheme.typography.titleMedium, color = gk.lime)
@@ -398,7 +415,7 @@ internal fun SettingsContent(
 
 /** Upgrade to Pro hero card; shows the active state (not clickable) once Pro is owned. */
 @Composable
-private fun ProHeroCard(isPro: Boolean, onClick: () -> Unit) {
+private fun ProHeroCard(isPro: Boolean, includesNoAds: Boolean, onClick: () -> Unit) {
     val gk = MaterialTheme.gharColors
     Row(
         Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(GharShapesExtra.Card)
@@ -417,11 +434,76 @@ private fun ProHeroCard(isPro: Boolean, onClick: () -> Unit) {
                 style = MaterialTheme.typography.titleLarge, color = gk.onHero,
             )
             Text(
-                stringResource(if (isPro) R.string.settings_pro_active_subtitle else R.string.settings_pro_hero_subtitle),
+                stringResource(
+                    when {
+                        isPro -> R.string.settings_pro_active_subtitle
+                        includesNoAds -> R.string.settings_pro_hero_subtitle_no_ads
+                        else -> R.string.settings_pro_hero_subtitle
+                    },
+                ),
                 style = MaterialTheme.typography.bodyMedium, color = gk.onHeroVariant,
             )
         }
         if (!isPro) Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = gk.onHero)
+    }
+}
+
+/** What the Settings "Remove ads" row shows; null means the row is hidden. */
+internal sealed interface RemoveAdsOffer {
+    data class Price(val price: String) : RemoveAdsOffer
+    data object Loading : RemoveAdsOffer
+    data object Unavailable : RemoveAdsOffer
+    data object Pending : RemoveAdsOffer
+}
+
+/**
+ * The row is only offered in the ads-shipping build, and only while ads are still on: Pro buyers and
+ * Remove-ads buyers never see it. Prices come from Play only.
+ */
+internal fun removeAdsOffer(
+    isPro: Boolean,
+    hasRemoveAds: Boolean,
+    price: String?,
+    pending: Boolean,
+    unavailable: Boolean,
+    adsShipping: Boolean = BuildConfig.ADS_SHIPPING,
+): RemoveAdsOffer? = when {
+    !adsShipping || isPro || hasRemoveAds -> null
+    pending -> RemoveAdsOffer.Pending
+    price != null -> RemoveAdsOffer.Price(price)
+    unavailable -> RemoveAdsOffer.Unavailable
+    else -> RemoveAdsOffer.Loading
+}
+
+/** Secondary offer under the Pro card: ads off only, and says so. */
+@Composable
+private fun RemoveAdsRow(offer: RemoveAdsOffer, onClick: () -> Unit) {
+    val gk = MaterialTheme.gharColors
+    val enabled = offer is RemoveAdsOffer.Price
+    Row(
+        Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().clip(GharShapesExtra.Card)
+            .background(gk.onHero.copy(alpha = 0.06f))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                when (offer) {
+                    is RemoveAdsOffer.Price -> stringResource(R.string.remove_ads_buy, offer.price)
+                    RemoveAdsOffer.Loading -> stringResource(R.string.pro_loading)
+                    RemoveAdsOffer.Unavailable -> stringResource(R.string.remove_ads_unavailable)
+                    RemoveAdsOffer.Pending -> stringResource(R.string.remove_ads_pending)
+                },
+                style = MaterialTheme.typography.titleMedium, color = gk.onHero,
+            )
+            Text(
+                stringResource(R.string.remove_ads_note),
+                style = MaterialTheme.typography.bodyMedium, color = gk.onHeroVariant,
+            )
+        }
+        if (enabled) Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = gk.onHero)
     }
 }
 

@@ -283,6 +283,12 @@
     <string name="pro_benefit_csv">CSV export of attendance and bills</string>
     <string name="pro_benefit_reminder">Daily \"mark today\" reminder</string>
     <string name="pro_benefit_year">Year summary for each provider</string>
+    <string name="pro_benefit_no_ads">No ads</string>
+    <string name="remove_ads_buy">Remove ads — %1$s</string>
+    <string name="remove_ads_note">Hides ads only. Pro features stay locked.</string>
+    <string name="remove_ads_pending">Remove ads is pending. Ads will go once the payment completes.</string>
+    <string name="remove_ads_unavailable">Remove ads isn\'t available right now. Please try again later.</string>
+    <string name="settings_pro_hero_subtitle_no_ads">One-time · everything in Pro: unlimited providers, bill image or PDF, CSV, and no ads</string>
     <string name="pro_always_free">Always free: marking, rates, paid leaves, balances and backup.</string>
     <string name="pro_sheet_close">Close</string>
     <string name="pro_badge">Pro</string>

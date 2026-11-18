@@ -1,6 +1,7 @@
 package com.postpole.gharkhata.ui.settings
 
 import android.content.ContentResolver
+import android.app.Activity
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,6 +9,7 @@ import com.postpole.gharkhata.analytics.Analytics
 import com.postpole.gharkhata.analytics.AnalyticsEvents
 import com.postpole.gharkhata.analytics.AnalyticsParams
 import com.postpole.gharkhata.billing.BillingRepository
+import com.postpole.gharkhata.billing.Product
 import com.postpole.gharkhata.data.BackupRepository
 import com.postpole.gharkhata.data.InvalidBackupException
 import com.postpole.gharkhata.data.SettingsRepository
@@ -45,6 +47,14 @@ class SettingsViewModel @Inject constructor(
     private val reminders: com.postpole.gharkhata.reminder.ReminderController,
 ) : ViewModel() {
     val isPro: StateFlow<Boolean> = billing.isPro
+    val hasRemoveAds: StateFlow<Boolean> = billing.hasRemoveAds
+    val removeAdsPrice: StateFlow<String?> = billing.removeAdsPrice
+    val removeAdsPending: StateFlow<Boolean> = billing.removeAdsPending
+    val removeAdsUnavailable: StateFlow<Boolean> = billing.removeAdsUnavailable
+
+    fun buyRemoveAds(activity: Activity) {
+        billing.launchPurchase(activity, Product.REMOVE_ADS)
+    }
 
     val themeMode: StateFlow<ThemeMode> = settings.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.SYSTEM)
