@@ -19,6 +19,9 @@ Set a monthly salary and paid leaves. Ghar Khata counts absences and works out t
 NEWSPAPER, WATER DELIVERY AND MORE
 Newspaper copies per day, water deliveries, cook or driver visits: pick per unit, per visit or monthly.
 
+HOME-SCREEN WIDGET (FREE)
+- A home-screen widget shows today's list and lets you mark what changed.
+
 SHARE THE MONTHLY BILL
 Send the bill as text on WhatsApp. Pro adds a bill image or PDF.
 
