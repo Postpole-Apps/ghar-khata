@@ -172,6 +172,12 @@
     <string name="status_skipped">छूटा</string>
     <string name="status_half">आधा दिन</string>
     <string name="status_extra">अतिरिक्त</string>
+    <string name="widget_label">Ghar Khata · आज</string>
+    <string name="widget_description">आज की सूची एक नज़र में। जो बदला हो, उसका चिप दबाएँ।</string>
+    <string name="widget_empty_title">अपने घर की सेवाएँ जोड़ें</string>
+    <string name="widget_open_today">आज खोलें</string>
+    <string name="widget_more_in_app">+%1$d और ऐप में</string>
+    <string name="widget_chip_cd">%1$s: %2$s। बदलने के लिए दबाएँ।</string>
     <string name="today_empty_title">आपके घर में कौन-कौन सेवा देता है?</string>
     <string name="today_empty_body">अपना दूधवाला, कामवाली या अख़बार जोड़ें। आप सिर्फ़ वही दिन दबाते हैं जब कुछ बदला हो, और महीने का बिल अपने आप जुड़ जाता है।</string>
     <string name="today_preset_milk">रोज़ के लीटर × दर</string>

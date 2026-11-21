@@ -15,6 +15,10 @@ import com.postpole.gharkhata.ads.AdsManager
 import com.postpole.gharkhata.analytics.Analytics
 import com.postpole.gharkhata.analytics.AnalyticsEvents
 import com.postpole.gharkhata.billing.BillingRepository
+import com.postpole.gharkhata.data.ProviderRepository
+import com.postpole.gharkhata.widget.TodayWidget
+import com.postpole.gharkhata.widget.TodayWidgetUpdater
+import androidx.glance.appwidget.updateAll
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +34,7 @@ class GharKhataApp : Application(), Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var reminders: ReminderController
     @Inject lateinit var ads: AdsManager
+    @Inject lateinit var providerRepository: ProviderRepository
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -42,6 +47,10 @@ class GharKhataApp : Application(), Configuration.Provider {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             // Re-runs whenever the entitlement changes (e.g. Play revokes Pro after a refund).
             billing.isPro.collect { reminders.reconcile() }
+        }
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+            // Marks or providers changed in the app: redraw the home-screen Today widget.
+            TodayWidgetUpdater.changes(providerRepository).collect { TodayWidget().updateAll(this@GharKhataApp) }
         }
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {

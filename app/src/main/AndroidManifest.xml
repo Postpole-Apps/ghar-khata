@@ -44,6 +44,22 @@
             </intent-filter>
         </activity>
 
+        <!-- Free home-screen Today widget (Glance). No extra permissions; the date-change actions roll the day over. -->
+        <receiver
+            android:name=".widget.TodayWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/today_widget_info" />
+        </receiver>
+
         <!-- On-demand WorkManager init: GharKhataApp provides the Hilt worker factory. -->
         <provider
             android:name="androidx.startup.InitializationProvider"
