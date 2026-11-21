@@ -175,7 +175,10 @@
     <string name="widget_description">Today\'s list at a glance. Tap a chip to mark what changed.</string>
     <string name="widget_empty_title">Add who serves your home</string>
     <string name="widget_open_today">Open Today</string>
-    <string name="widget_more_in_app">+%1$d more in the app</string>
+    <plurals name="widget_more_in_app">
+        <item quantity="one">+%1$d more in the app</item>
+        <item quantity="other">+%1$d more in the app</item>
+    </plurals>
     <string name="widget_chip_cd">%1$s: %2$s. Tap to change.</string>
     <string name="today_empty_title">Who serves your home?</string>
     <string name="today_empty_body">Add your milkman, maid or newspaper. You only tap the days something changes, and the month\'s bill adds itself up.</string>

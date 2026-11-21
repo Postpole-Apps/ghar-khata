@@ -1,6 +1,7 @@
 package com.postpole.gharkhata.widget
 
 import android.content.Context
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.updateAll
 import com.postpole.gharkhata.data.ProviderRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,5 +29,8 @@ object TodayWidgetUpdater {
     suspend fun refresh(context: Context) {
         day.value = LocalDate.now().toEpochDay()
         TodayWidget().updateAll(context.applicationContext)
+        if (GlanceAppWidgetManager(context.applicationContext).getGlanceIds(TodayWidget::class.java).isNotEmpty()) {
+            MidnightScheduler.schedule(context)
+        }
     }
 }

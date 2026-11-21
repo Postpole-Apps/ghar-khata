@@ -27,10 +27,20 @@ internal fun Context.widgetRepository(): ProviderRepository =
 class TodayWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = TodayWidget()
 
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        MidnightScheduler.schedule(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        MidnightScheduler.cancel(context)
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         when (intent.action) {
-            Intent.ACTION_DATE_CHANGED, Intent.ACTION_TIMEZONE_CHANGED, Intent.ACTION_TIME_CHANGED -> {
+            MidnightScheduler.ACTION_MIDNIGHT, Intent.ACTION_DATE_CHANGED, Intent.ACTION_TIMEZONE_CHANGED, Intent.ACTION_TIME_CHANGED -> {
                 val pending = goAsync()
                 CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
                     try {

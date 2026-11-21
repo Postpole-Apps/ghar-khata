@@ -170,7 +170,7 @@ private fun WideContent(state: TodayState) {
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Text(
-                    context.getString(R.string.widget_more_in_app, hidden),
+                    context.resources.getQuantityString(R.plurals.widget_more_in_app, hidden, hidden),
                     style = TextStyle(color = WidgetColors.onBackgroundVariant, fontSize = 12.sp, fontWeight = FontWeight.Medium),
                 )
             }
