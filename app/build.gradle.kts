@@ -185,6 +185,7 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.hilt.work)
+    implementation(libs.androidx.glance.appwidget)
     ksp(libs.androidx.hilt.compiler)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.billing.ktx)

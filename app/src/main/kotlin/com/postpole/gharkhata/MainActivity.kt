@@ -98,5 +98,11 @@ class MainActivity : ComponentActivity() {
     companion object {
         /** Boolean extra set by the reminder notification: open on the Today tab. */
         const val EXTRA_GO_TO_TODAY = "com.postpole.gharkhata.GO_TO_TODAY"
+
+        /** Intent that opens the app on Today on cold and warm starts (reminder and home-screen widget). */
+        fun openTodayIntent(context: android.content.Context): Intent =
+            Intent(context, MainActivity::class.java)
+                .putExtra(EXTRA_GO_TO_TODAY, true)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
     }
 }
