@@ -353,4 +353,11 @@
     <string name="reminder_channel_name">Daily reminder</string>
     <string name="reminder_notification_title">Mark today</string>
     <string name="reminder_notification_text">Tap only what changed today. The bill adds itself up.</string>
+    <string name="providers_status_settled">Settled</string>
+    <string name="providers_status_prev_due">Prev. due %1$s</string>
+    <string name="providers_status_credit">Credit %1$s</string>
+    <string name="today_open_provider_cd">Open %1$s monthly register</string>
+    <string name="settings_widget_pin_title">Home-screen widget</string>
+    <string name="settings_widget_pin_sub">Add Today\'s list to your home screen</string>
+    <string name="settings_widget_pin_unavailable">Could not add widget on this launcher</string>
 </resources>

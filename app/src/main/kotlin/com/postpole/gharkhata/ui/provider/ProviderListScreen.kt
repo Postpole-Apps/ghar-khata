@@ -257,6 +257,7 @@ private fun ActiveRow(row: ProviderRow, style: Int, today: LocalDate, onClick: (
             }
             Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = fg.copy(alpha = 0.8f))
         }
+        StatusPill(row)
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
           Text(
             monthLabel(today),
@@ -276,6 +277,34 @@ private fun ActiveRow(row: ProviderRow, style: Int, today: LocalDate, onClick: (
           }
         }
     }
+}
+
+/** Settled / previous due / credit caption for one provider; wraps (never truncates) at large font scales. */
+@Composable
+private fun StatusPill(row: ProviderRow) {
+    val gk = MaterialTheme.gharColors
+    val cs = MaterialTheme.colorScheme
+    val (text, container, content) = when {
+        row.isCurrentMonthSettled ->
+            Triple(stringResource(R.string.providers_status_settled), cs.primaryContainer, cs.onPrimaryContainer)
+        row.previousBalancePaise > 0 ->
+            Triple(
+                stringResource(R.string.providers_status_prev_due, Money.format(row.previousBalancePaise)),
+                gk.saffronContainer, gk.onSaffronContainer,
+            )
+        row.previousBalancePaise < 0 ->
+            Triple(
+                stringResource(R.string.providers_status_credit, Money.format(-row.previousBalancePaise)),
+                cs.secondaryContainer, cs.onSecondaryContainer,
+            )
+        else -> return
+    }
+    Text(
+        text,
+        style = MaterialTheme.typography.labelMedium,
+        color = content,
+        modifier = Modifier.clip(RoundedCornerShape(50)).background(container).padding(horizontal = 12.dp, vertical = 4.dp),
+    )
 }
 
 @Composable
