@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.sp
 
 // Tokens from design/mockups/styles.css (Ghar Khata v3, deep green + lime).
 
-private val LightColors = lightColorScheme(
+internal val LightColors = lightColorScheme(
     primary = Color(0xFF006C47),
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFF8EF7C1),
@@ -64,7 +64,7 @@ private val LightColors = lightColorScheme(
     scrim = Color(0xFF000000),
 )
 
-private val DarkColors = darkColorScheme(
+internal val DarkColors = darkColorScheme(
     primary = Color(0xFF71DAA6),
     onPrimary = Color(0xFF003823),
     primaryContainer = Color(0xFF005234),
