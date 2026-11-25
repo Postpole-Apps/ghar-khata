@@ -58,6 +58,10 @@ class BillingRepository(
     @Volatile
     private var inFlight: Product? = null
 
+    /** Auto-prompt `trigger` the in-flight Pro purchase came from (enum only), or null for a manual open. */
+    @Volatile
+    private var inFlightTrigger: String? = null
+
     /** Pro product owned. Gates every Pro feature; Remove ads does NOT affect it. */
     val isPro: StateFlow<Boolean> = dataStore.data
         .map { it[IS_PRO] ?: false }
@@ -81,6 +85,9 @@ class BillingRepository(
 
     /** Reads the persisted entitlement directly, so callers at startup never see [isPro]'s initial `false`. */
     suspend fun isProStored(): Boolean = dataStore.data.first()[IS_PRO] ?: false
+
+    /** Same as [isProStored], for the Remove ads entitlement. */
+    suspend fun hasRemoveAdsStored(): Boolean = dataStore.data.first()[HAS_REMOVE_ADS] ?: false
 
     private val _price = MutableStateFlow<String?>(null)
 
@@ -171,22 +178,29 @@ class BillingRepository(
         if (started) scope.launch { refresh() }
     }
 
-    fun launchPurchase(activity: Activity, product: Product = Product.PRO): Boolean {
+    /** [trigger] is the enum-only `auto_<trigger>` of an automatic Pro prompt; it is only used for Pro. */
+    fun launchPurchase(activity: Activity, product: Product = Product.PRO, trigger: String? = null): Boolean {
         val launched = gateway.launchPurchase(activity, product)
+        val proTrigger = if (product == Product.PRO) trigger else null
         if (launched) {
             inFlight = product
+            inFlightTrigger = proTrigger
             analytics.logEvent(
                 if (product == Product.PRO) AnalyticsEvents.PURCHASE_STARTED else AnalyticsEvents.REMOVE_ADS_PURCHASE_START,
-                productParams(product),
+                productParams(product) + triggerParam(proTrigger),
             )
         } else {
             inFlight = null
+            inFlightTrigger = null
             logRemoveAdsFail(product, PurchaseFailReasons.LAUNCH_FAILED)
             analytics.recordNonFatal(BillingException("Could not launch purchase flow"))
             _messages.trySend(BillingMessage.LAUNCH_FAILED)
         }
         return launched
     }
+
+    private fun triggerParam(trigger: String?): Map<String, Any> =
+        if (trigger == null) emptyMap() else mapOf(AnalyticsParams.TRIGGER to trigger)
 
     /** Product id / price / currency when Play has told us; no personal data. */
     private fun productParams(product: Product): Map<String, Any> {
@@ -214,6 +228,7 @@ class BillingRepository(
     private fun failInFlight(reason: String) {
         val product = inFlight ?: return
         inFlight = null
+        inFlightTrigger = null
         logRemoveAdsFail(product, reason)
     }
 
@@ -264,11 +279,16 @@ class BillingRepository(
      * Remove ads: `remove_ads_purchase_success` for a fresh buy only; a refresh/restore finding it logs nothing.
      */
     private fun logPurchaseEvent(source: Source, product: Product) {
-        if (source == Source.PURCHASE_FLOW && inFlight == product) inFlight = null
+        var trigger: String? = null
+        if (source == Source.PURCHASE_FLOW && inFlight == product) {
+            inFlight = null
+            trigger = inFlightTrigger
+            inFlightTrigger = null
+        }
         val params = productParams(product)
         when (product) {
             Product.PRO -> when (source) {
-                Source.PURCHASE_FLOW -> analytics.logEvent(AnalyticsEvents.PURCHASE, params)
+                Source.PURCHASE_FLOW -> analytics.logEvent(AnalyticsEvents.PURCHASE, params + triggerParam(trigger))
                 Source.REFRESH -> analytics.logEvent(AnalyticsEvents.PURCHASE_RESTORED, params)
             }
             Product.REMOVE_ADS ->

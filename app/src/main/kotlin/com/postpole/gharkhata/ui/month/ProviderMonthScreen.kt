@@ -87,14 +87,24 @@ fun ProviderMonthScreen(
     onOpenBill: (providerId: Long, yearMonth: Int) -> Unit,
     onOpenYear: (providerId: Long, yearMonth: Int) -> Unit,
     onOverlayChanged: (Boolean) -> Unit = {},
+    autoProSheetRequest: Boolean = false,
+    onAutoProSheetConsumed: () -> Unit = {},
     viewModel: ProviderMonthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val autoProSheet by viewModel.autoProSheet.collectAsStateWithLifecycle()
+    // Back from Bill preview with the auto Pro sheet granted.
+    LaunchedEffect(autoProSheetRequest) {
+        if (autoProSheetRequest) {
+            viewModel.openAutoProSheet()
+            onAutoProSheetConsumed()
+        }
+    }
     var editDay by remember { mutableStateOf<Long?>(null) }
     var showPaid by remember { mutableStateOf(false) }
     var showPro by remember { mutableStateOf(false) }
     // The banner is hidden while DayMarkSheet / ProSheet / the paid dialog is open.
-    val overlayOpen = editDay != null || showPaid || showPro
+    val overlayOpen = editDay != null || showPaid || showPro || autoProSheet
     LaunchedEffect(overlayOpen) { onOverlayChanged(overlayOpen) }
     DisposableEffect(Unit) { onDispose { onOverlayChanged(false) } }
     val isPro = rememberIsPro()
@@ -111,6 +121,10 @@ fun ProviderMonthScreen(
         isPro = isPro,
     )
     if (showPro) ProSheet(onDismiss = { showPro = false }, reason = ProReason.YEAR_SUMMARY)
+    // Never over DayMarkSheet / MarkPaidDialog: it opens only after they are gone.
+    if (autoProSheet && editDay == null && !showPaid && !showPro) {
+        ProSheet(onDismiss = viewModel::closeAutoProSheet, reason = ProReason.AUTO_BILL_MILESTONE)
+    }
     val provider = state.provider
     editDay?.let { day ->
         if (provider != null) {
@@ -134,7 +148,7 @@ fun ProviderMonthScreen(
             initialPaidPaise = state.settlement?.paidPaise,
             initialNote = state.settlement?.note,
             onDismiss = { showPaid = false },
-            onSave = { paid, on, note -> if (viewModel.markPaid(paid, on, note)) showPaid = false },
+            onSave = { paid, on, note -> if (viewModel.markPaid(paid, on, note, offerPro = true)) showPaid = false },
         )
     }
 }

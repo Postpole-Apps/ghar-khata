@@ -24,6 +24,10 @@ interface DayMarkDao {
     @Query("DELETE FROM day_marks WHERE providerId = :providerId AND epochDay = :epochDay")
     suspend fun clear(providerId: Long, epochDay: Long)
 
+    /** Number of different days with at least one stored mark, across all providers. */
+    @Query("SELECT COUNT(DISTINCT epochDay) FROM day_marks")
+    suspend fun countDistinctMarkedDays(): Int
+
     // Backup support.
     @Query("SELECT * FROM day_marks ORDER BY providerId, epochDay")
     suspend fun getAll(): List<DayMarkEntity>

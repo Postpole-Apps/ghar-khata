@@ -360,4 +360,13 @@
     <string name="settings_widget_pin_title">Home-screen widget</string>
     <string name="settings_widget_pin_sub">Add Today\'s list to your home screen</string>
     <string name="settings_widget_pin_unavailable">Could not add widget on this launcher</string>
+    <!-- Automatic Pro prompts -->
+    <string name="pro_prompt_sheet_title">Share tidy monthly bills with Pro</string>
+    <string name="pro_prompt_sheet_subtitle">Pay once for Ghar Khata Pro — image &amp; PDF bills, daily reminders, year summary, and unlimited providers. Your data stays on your device.</string>
+    <string name="pro_prompt_card_title">Tracking smoothly? Try Ghar Khata Pro</string>
+    <string name="pro_prompt_card_body">Share image &amp; PDF bills on WhatsApp, set daily reminders, and view your full year summary. Pay once — %1$s.</string>
+    <string name="pro_prompt_card_body_no_price">Share image &amp; PDF bills on WhatsApp, set daily reminders, and view your full year summary. Pay once.</string>
+    <string name="pro_prompt_see_pro">See Pro</string>
+    <string name="pro_prompt_not_now">Not now</string>
+    <string name="pro_prompt_close_cd">Close Pro suggestion</string>
 </resources>

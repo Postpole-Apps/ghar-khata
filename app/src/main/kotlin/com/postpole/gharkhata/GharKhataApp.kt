@@ -19,6 +19,7 @@ import com.postpole.gharkhata.data.ProviderRepository
 import com.postpole.gharkhata.widget.TodayWidget
 import com.postpole.gharkhata.widget.TodayWidgetUpdater
 import androidx.glance.appwidget.updateAll
+import com.postpole.gharkhata.pro.ProPromptController
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +36,7 @@ class GharKhataApp : Application(), Configuration.Provider {
     @Inject lateinit var reminders: ReminderController
     @Inject lateinit var ads: AdsManager
     @Inject lateinit var providerRepository: ProviderRepository
+    @Inject lateinit var proPrompts: ProPromptController
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -43,6 +45,8 @@ class GharKhataApp : Application(), Configuration.Provider {
         super.onCreate()
         billing.start()
         ads.start()
+        proPrompts.refreshSettings()
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch { proPrompts.startSession() }
         logLaunch()
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             // Re-runs whenever the entitlement changes (e.g. Play revokes Pro after a refund).
@@ -57,6 +61,7 @@ class GharKhataApp : Application(), Configuration.Provider {
                 override fun onStart(owner: LifecycleOwner) {
                     billing.onForeground()
                     ads.onForeground()
+                    proPrompts.refreshSettings()
                 }
             },
         )

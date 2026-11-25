@@ -15,6 +15,10 @@ import com.postpole.gharkhata.data.ProviderRepository
 import com.postpole.gharkhata.domain.BillCalculator
 import com.postpole.gharkhata.domain.BillLineKind
 import com.postpole.gharkhata.domain.MonthBill
+import com.postpole.gharkhata.pro.NoProPrompts
+import com.postpole.gharkhata.pro.ProPromptScreen
+import com.postpole.gharkhata.pro.ProPromptTrigger
+import com.postpole.gharkhata.pro.ProPrompts
 import com.postpole.gharkhata.ui.today.TodayViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -83,6 +87,7 @@ class ProviderMonthViewModel internal constructor(
     private val repository: ProviderRepository,
     private val analytics: Analytics,
     private val todayProvider: () -> Long,
+    private val prompts: ProPrompts = NoProPrompts,
 ) : ViewModel() {
 
     @Inject
@@ -90,7 +95,17 @@ class ProviderMonthViewModel internal constructor(
         savedState: SavedStateHandle,
         repository: ProviderRepository,
         analytics: Analytics,
-    ) : this(savedState, repository, analytics, { LocalDate.now().toEpochDay() })
+        prompts: ProPrompts,
+    ) : this(savedState, repository, analytics, { LocalDate.now().toEpochDay() }, prompts)
+
+    private val _autoProSheet = MutableStateFlow(false)
+
+    /** The automatic Pro sheet (bill milestone) is open on this screen. */
+    val autoProSheet: StateFlow<Boolean> = _autoProSheet
+
+    fun openAutoProSheet() { _autoProSheet.value = true }
+
+    fun closeAutoProSheet() { _autoProSheet.value = false }
 
     val providerId: Long = savedState.get<Long>("id") ?: 0L
     private val todayEpochDay: Long = todayProvider()
@@ -190,8 +205,10 @@ class ProviderMonthViewModel internal constructor(
      * this moment (including what was carried in), `paidPaise` what was paid. The difference, positive
      * (short) or negative (overpaid), carries into the next month's previous balance via [BillCalculator].
      * Returns false when nothing was saved (no provider yet, or a negative amount).
+     * [offerPro] is true only for the Month screen: once the settlement is saved the automatic Pro sheet may
+     * open there. Bill preview passes false and shows it on return instead.
      */
-    fun markPaid(paidPaise: Long, paidOnEpochDay: Long, note: String?): Boolean {
+    fun markPaid(paidPaise: Long, paidOnEpochDay: Long, note: String?, offerPro: Boolean = false): Boolean {
         val s = state.value
         val bill = s.bill ?: return false
         if (s.provider == null || paidPaise < 0) return false
@@ -206,12 +223,17 @@ class ProviderMonthViewModel internal constructor(
         viewModelScope.launch {
             repository.saveSettlement(settlement)
             analytics.logEvent(AnalyticsEvents.SETTLEMENT_SAVED, mapOf(AnalyticsParams.STATUS to if (paidPaise < bill.duePaise) "short" else "full"))
+            prompts.recordBillMilestone()
+            if (offerPro && prompts.reserve(ProPromptTrigger.BILL_MILESTONE, ProPromptScreen.PROVIDER_MONTH)) {
+                _autoProSheet.value = true
+            }
         }
         return true
     }
 
     fun onShared(channel: String) {
         analytics.logEvent(AnalyticsEvents.BILL_SHARED, mapOf(AnalyticsParams.FORMAT to channel))
+        viewModelScope.launch { prompts.recordBillMilestone() }
     }
 
     companion object {

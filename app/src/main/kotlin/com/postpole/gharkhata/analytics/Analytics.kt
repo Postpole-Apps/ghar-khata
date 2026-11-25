@@ -17,6 +17,11 @@ object AnalyticsEvents {
     const val BILL_SHARED = "bill_shared"
     const val SETTLEMENT_SAVED = "settlement_saved"
 
+    // Automatic Pro prompts. Enum-only params: trigger, surface, method.
+    const val PRO_PROMPT_SHOWN = "pro_prompt_shown"
+    const val PRO_PROMPT_DISMISSED = "pro_prompt_dismissed"
+    const val PRO_PROMPT_CTA_TAP = "pro_prompt_cta_tap"
+
     // Remove ads (ads-era). Pro keeps its own events above; these never fire for Pro and vice versa.
     const val REMOVE_ADS_PAYWALL_VIEW = "remove_ads_paywall_view"
     const val REMOVE_ADS_PURCHASE_START = "remove_ads_purchase_start"
@@ -38,6 +43,15 @@ object AnalyticsParams {
 
     /** Enum-only entry point, see [AdPaywallSources]. Never free text. */
     const val SOURCE = "source"
+
+    /** Enum-only auto Pro prompt trigger, see ProPromptTrigger. */
+    const val TRIGGER = "trigger"
+
+    /** Enum-only auto Pro prompt surface: `card` or `sheet`. */
+    const val SURFACE = "surface"
+
+    /** Enum-only dismissal method: `close`, `not_now` or `swipe`. */
+    const val METHOD = "method"
 
     /** Enum-only failure reason, see [PurchaseFailReasons]. */
     const val REASON = "reason"

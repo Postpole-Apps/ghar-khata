@@ -12,7 +12,15 @@ import com.postpole.gharkhata.domain.BillCalculator
 import com.postpole.gharkhata.domain.Schedule
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.postpole.gharkhata.pro.NoProPrompts
+import com.postpole.gharkhata.pro.ProDismissMethod
+import com.postpole.gharkhata.pro.ProPromptScreen
+import com.postpole.gharkhata.pro.ProPromptTrigger
+import com.postpole.gharkhata.pro.ProPrompts
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -46,6 +54,8 @@ data class ProviderListState(
     val active: List<ProviderRow> = emptyList(),
     val archived: List<ProviderEntity> = emptyList(),
     val isPro: Boolean = false,
+    /** The first emission with real data has arrived. */
+    val loaded: Boolean = false,
 ) {
     val canAdd: Boolean get() = canAddActiveProvider(active.size, isPro)
 }
@@ -57,6 +67,7 @@ const val STRIP_DAYS = 30
 class ProviderListViewModel @Inject constructor(
     private val repository: ProviderRepository,
     proStatus: ProStatus,
+    private val prompts: ProPrompts = NoProPrompts,
 ) : ViewModel() {
 
     private fun activeRows(today: Long): Flow<List<ProviderRow>> {
@@ -106,8 +117,49 @@ class ProviderListViewModel @Inject constructor(
         activeRows(LocalDate.now().toEpochDay()),
         repository.observeAll().map { all -> all.filter { it.archived } },
         proStatus.isPro,
-    ) { active, archived, isPro -> ProviderListState(active, archived, isPro) }
+    ) { active, archived, isPro -> ProviderListState(active, archived, isPro, loaded = true) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProviderListState())
+
+    /** Play Billing price for the card; null until loaded. */
+    val price: StateFlow<String?> = prompts.price
+
+    private val cardGranted = MutableStateFlow(false)
+    private val cardClosed = MutableStateFlow(false)
+    private var cardShownLogged = false
+
+    init {
+        // Once per visit to the screen's view model: ask the policy with the real provider count.
+        viewModelScope.launch {
+            val s = state.first { it.loaded }
+            val atFreeLimit = s.active.size >= FREE_ACTIVE_PROVIDER_LIMIT
+            cardGranted.value = !s.isPro && prompts.reserve(
+                ProPromptTrigger.MARKED_DAYS_MILESTONE, ProPromptScreen.PROVIDER_LIST, freeLimitCardShowing = atFreeLimit,
+            )
+        }
+    }
+
+    /** The marked-days card shows: granted by the policy, not closed, and never next to the 3/3 FreeLimitCard. */
+    val showCard: StateFlow<Boolean> = combine(cardGranted, cardClosed, state) { granted, closed, s ->
+        granted && !closed && !s.isPro && s.active.size < FREE_ACTIVE_PROVIDER_LIMIT
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    /** The card was drawn: starts its cooldown. Logged once per view model. */
+    fun onCardShown() {
+        if (cardShownLogged) return
+        cardShownLogged = true
+        viewModelScope.launch { prompts.onShown(ProPromptTrigger.MARKED_DAYS_MILESTONE) }
+    }
+
+    /** "See Pro": opens the sheet; the card goes away for this visit without counting as a dismissal. */
+    fun onCardCta() {
+        prompts.onCtaTap(ProPromptTrigger.MARKED_DAYS_MILESTONE)
+        cardClosed.value = true
+    }
+
+    fun onCardDismissed(method: ProDismissMethod) {
+        cardClosed.value = true
+        viewModelScope.launch { prompts.onDismissed(ProPromptTrigger.MARKED_DAYS_MILESTONE, method) }
+    }
 
     companion object {
         internal fun strip(provider: ProviderEntity, marks: List<DayMarkEntity>, today: Long): List<StripDay> {

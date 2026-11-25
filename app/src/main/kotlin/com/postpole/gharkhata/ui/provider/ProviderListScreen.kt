@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +50,9 @@ import com.postpole.gharkhata.R
 import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.data.ProviderEntity
 import com.postpole.gharkhata.domain.Money
+import com.postpole.gharkhata.pro.ProDismissMethod
+import com.postpole.gharkhata.pro.ProPromptTrigger
+import com.postpole.gharkhata.ui.pro.ProInlineCard
 import com.postpole.gharkhata.ui.pro.ProReason
 import com.postpole.gharkhata.ui.pro.ProSheet
 import com.postpole.gharkhata.ui.theme.GharNumerals
@@ -69,15 +73,38 @@ fun ProviderListScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showPro by remember { mutableStateOf<ProReason?>(null) }
+    var showCardPro by remember { mutableStateOf(false) }
+    val showCard by viewModel.showCard.collectAsStateWithLifecycle()
+    val price by viewModel.price.collectAsStateWithLifecycle()
+    LaunchedEffect(showCard) { if (showCard) viewModel.onCardShown() }
     ProviderListContent(
         state = state,
+        proCard = if (showCard) {
+            ProCardUi(
+                price = price,
+                onSeePro = { viewModel.onCardCta(); showCardPro = true },
+                onDismiss = viewModel::onCardDismissed,
+            )
+        } else {
+            null
+        },
         onOpenProvider = onOpenProvider,
         onAddProvider = { if (state.canAdd) onAddProvider() else showPro = ProReason.PROVIDER_LIMIT },
         onSeePro = { showPro = if (state.canAdd) ProReason.GENERAL else ProReason.PROVIDER_LIMIT },
         onOpenSettings = onOpenSettings,
     )
     showPro?.let { ProSheet(onDismiss = { showPro = null }, reason = it) }
+    if (showCardPro) {
+        ProSheet(onDismiss = { showCardPro = false }, reason = ProReason.GENERAL, attribution = ProPromptTrigger.MARKED_DAYS_MILESTONE)
+    }
 }
+
+/** The automatic marked-days Pro card and what its buttons do. */
+internal class ProCardUi(
+    val price: String?,
+    val onSeePro: () -> Unit,
+    val onDismiss: (ProDismissMethod) -> Unit,
+)
 
 /** Stateless Providers list (also used by the screenshot tests). */
 @Composable
@@ -87,6 +114,7 @@ internal fun ProviderListContent(
     onAddProvider: () -> Unit,
     onSeePro: () -> Unit,
     onOpenSettings: () -> Unit = {},
+    proCard: ProCardUi? = null,
     showArchivedInitially: Boolean = true,
     today: LocalDate = LocalDate.now(),
 ) {
@@ -157,6 +185,16 @@ internal fun ProviderListContent(
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                if (proCard != null) {
+                    item(key = "pro-card") {
+                        ProInlineCard(
+                            price = proCard.price,
+                            onSeePro = proCard.onSeePro,
+                            onNotNow = { proCard.onDismiss(ProDismissMethod.NOT_NOW) },
+                            onClose = { proCard.onDismiss(ProDismissMethod.CLOSE) },
+                        )
+                    }
+                }
                 if (state.active.isEmpty() && (!showArchived || state.archived.isEmpty())) {
                     item {
                         Text(
