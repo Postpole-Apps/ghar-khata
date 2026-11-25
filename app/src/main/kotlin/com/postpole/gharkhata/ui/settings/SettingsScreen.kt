@@ -1,6 +1,8 @@
 package com.postpole.gharkhata.ui.settings
 
+import android.appwidget.AppWidgetManager
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -75,6 +77,7 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.TableChart
+import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material3.Icon
 import androidx.compose.ui.draw.clip
@@ -85,6 +88,8 @@ import com.postpole.gharkhata.ui.pro.CrownIcon
 import com.postpole.gharkhata.ui.provider.BadgeShape
 import com.postpole.gharkhata.ui.theme.GharShapesExtra
 import com.postpole.gharkhata.ui.theme.gharColors
+import com.postpole.gharkhata.widget.TodayWidgetReceiver
+import kotlinx.coroutines.launch
 import java.util.Currency
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,6 +111,9 @@ fun SettingsScreen(
     val context = LocalContext.current
     val resolver = context.contentResolver
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val widgetUnavailable = stringResource(R.string.settings_widget_pin_unavailable)
+    val widgetPinSupported = remember(context) { isWidgetPinSupported(context) }
 
     var showPro by rememberSaveable { mutableStateOf<String?>(null) }
     var showTheme by rememberSaveable { mutableStateOf(false) }
@@ -183,6 +191,14 @@ fun SettingsScreen(
             onExportCsv = { if (isPro) exportCsv.launch(backupFileName("csv")) else showPro = "csv" },
             onReminder = { if (isPro) showReminderPicker = true else showPro = "reminder" },
             onTurnOffReminder = viewModel::clearReminder,
+            showWidgetPin = widgetPinSupported,
+            onWidgetPin = {
+                val ok = runCatching {
+                    AppWidgetManager.getInstance(context)
+                        .requestPinAppWidget(ComponentName(context, TodayWidgetReceiver::class.java), null, null)
+                }.getOrDefault(false)
+                if (!ok) scope.launch { snackbarHostState.showSnackbar(widgetUnavailable) }
+            },
             onTheme = { showTheme = true },
             onDynamicColor = viewModel::setDynamicColor,
             onCurrency = { showCurrency = true },
@@ -328,6 +344,8 @@ internal fun SettingsContent(
     onExportCsv: () -> Unit = {},
     onReminder: () -> Unit = {},
     onTurnOffReminder: () -> Unit = {},
+    showWidgetPin: Boolean = false,
+    onWidgetPin: () -> Unit = {},
     onTheme: () -> Unit = {},
     onDynamicColor: (Boolean) -> Unit = {},
     onCurrency: () -> Unit = {},
@@ -392,6 +410,16 @@ internal fun SettingsContent(
                 )
             }
 
+            if (showWidgetPin) {
+                Spacer(Modifier.height(8.dp))
+                SettingsGroup {
+                    SettingsRow(
+                        Icons.Outlined.Widgets, stringResource(R.string.settings_widget_pin_title),
+                        stringResource(R.string.settings_widget_pin_sub), onClick = onWidgetPin,
+                    )
+                }
+            }
+
             SectionHeader(R.string.settings_section_appearance)
             SettingsGroup {
                 SettingsRow(Icons.Outlined.Palette, stringResource(R.string.settings_theme), stringResource(themeMode.label()), onClick = onTheme)
@@ -421,6 +449,10 @@ internal fun SettingsContent(
         }
     }
 }
+
+/** True when the launcher can pin app widgets (Android 8.0+ with a supporting launcher). */
+internal fun isWidgetPinSupported(context: Context): Boolean =
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && AppWidgetManager.getInstance(context).isRequestPinAppWidgetSupported
 
 /** Upgrade to Pro hero card; shows the active state (not clickable) once Pro is owned. */
 @Composable

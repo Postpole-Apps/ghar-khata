@@ -354,4 +354,11 @@
     <string name="reminder_channel_name">रोज़ का रिमाइंडर</string>
     <string name="reminder_notification_title">आज दर्ज करें</string>
     <string name="reminder_notification_text">सिर्फ़ वही दबाएँ जो आज बदला। बिल अपने आप जुड़ जाएगा।</string>
+    <string name="providers_status_settled">हिसाब पूरा</string>
+    <string name="providers_status_prev_due">पिछला बाकी %1$s</string>
+    <string name="providers_status_credit">क्रेडिट %1$s</string>
+    <string name="today_open_provider_cd">%1$s का मासिक खाता खोलें</string>
+    <string name="settings_widget_pin_title">होम-स्क्रीन विजेट</string>
+    <string name="settings_widget_pin_sub">आज की सूची होम स्क्रीन पर जोड़ें</string>
+    <string name="settings_widget_pin_unavailable">इस लॉन्चर पर विजेट नहीं जुड़ सका</string>
 </resources>

@@ -106,6 +106,7 @@ fun TodayScreen(
     onAddProvider: () -> Unit,
     onPreset: (ProviderType) -> Unit,
     onOpenBills: () -> Unit,
+    onOpenProvider: (Long) -> Unit,
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -121,6 +122,7 @@ fun TodayScreen(
         onPreset = onPreset,
         onOpenPro = { showPro = ProReason.GENERAL },
         onOpenBills = onOpenBills,
+        onOpenProvider = onOpenProvider,
     )
     showPro?.let { ProSheet(onDismiss = { showPro = null }, reason = it) }
 }
@@ -139,6 +141,7 @@ internal fun TodayContent(
     onPreset: (ProviderType) -> Unit,
     onOpenPro: () -> Unit,
     onOpenBills: () -> Unit = {},
+    onOpenProvider: (Long) -> Unit = {},
 ) {
     val gk = MaterialTheme.gharColors
     var qtyRow by remember { mutableStateOf<TodayRow?>(null) }
@@ -160,7 +163,7 @@ internal fun TodayContent(
             PresetSheet(onPreset)
         } else {
             Hero(state, onSelectDate, onPickDate = { showPicker = true }, onOpenBills = onOpenBills)
-            Sheet(state, onCycle, onEditQty = { qtyRow = it }, onAddProvider = onAddProvider)
+            Sheet(state, onCycle, onEditQty = { qtyRow = it }, onAddProvider = onAddProvider, onOpenProvider = onOpenProvider)
         }
     }
 
@@ -391,7 +394,13 @@ private fun DayStrip(state: TodayState, onSelectDate: (Long) -> Unit) {
 }
 
 @Composable
-private fun Sheet(state: TodayState, onCycle: (TodayRow) -> Unit, onEditQty: (TodayRow) -> Unit, onAddProvider: () -> Unit) {
+private fun Sheet(
+    state: TodayState,
+    onCycle: (TodayRow) -> Unit,
+    onEditQty: (TodayRow) -> Unit,
+    onAddProvider: () -> Unit,
+    onOpenProvider: (Long) -> Unit,
+) {
     Column(
         Modifier.fillMaxSize().clip(GharShapesExtra.SheetTop).background(MaterialTheme.colorScheme.surface),
     ) {
@@ -433,7 +442,10 @@ private fun Sheet(state: TodayState, onCycle: (TodayRow) -> Unit, onEditQty: (To
             }
             items(state.rows, key = { it.provider.id }) { row ->
                 val index = state.rows.indexOf(row)
-                TodayRowCard(row, style = index % 3, onCycle = { onCycle(row) }, onEditQty = { onEditQty(row) })
+                TodayRowCard(
+                    row, style = index % 3, onCycle = { onCycle(row) }, onEditQty = { onEditQty(row) },
+                    onOpen = { onOpenProvider(row.provider.id) },
+                )
             }
         }
     }
@@ -458,7 +470,7 @@ private fun statusLabel(row: TodayRow): String = when (row.status) {
 internal fun formatQty(q: Double): String = if (q % 1.0 == 0.0) q.toLong().toString() else q.toString()
 
 @Composable
-private fun TodayRowCard(row: TodayRow, style: Int, onCycle: () -> Unit, onEditQty: () -> Unit) {
+internal fun TodayRowCard(row: TodayRow, style: Int, onCycle: () -> Unit, onEditQty: () -> Unit, onOpen: () -> Unit = {}) {
     val gk = MaterialTheme.gharColors
     val cs = MaterialTheme.colorScheme
     val bg: Modifier = when (style) {
@@ -480,11 +492,20 @@ private fun TodayRowCard(row: TodayRow, style: Int, onCycle: () -> Unit, onEditQ
         else -> if (style == 1) gk.lime to gk.onLime else gk.hero to gk.onHero
     }
     val p = row.provider
+    val openDesc = stringResource(R.string.today_open_provider_cd, p.name)
     Row(
         Modifier.fillMaxWidth().clip(GharShapesExtra.Card).then(bg).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // Only the avatar + name/summary area opens the month; the chip and qty pill stay separate siblings.
+        Row(
+            Modifier.weight(1f).heightIn(min = 48.dp)
+                .semantics(mergeDescendants = true) { contentDescription = openDesc }
+                .clickable(role = Role.Button, onClick = onOpen),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
         ProviderAvatar(p.type, container = avatarBg, content = avatarFg)
         Column(Modifier.weight(1f)) {
             Text(p.name, style = MaterialTheme.typography.titleMedium, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -498,6 +519,7 @@ private fun TodayRowCard(row: TodayRow, style: Int, onCycle: () -> Unit, onEditQ
             row.note?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = fg.copy(alpha = 0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
+        }
         }
         Column(horizontalAlignment = Alignment.End) {
             PillButton(onClick = onCycle, container = chipBg, horizontalPadding = 14.dp) {

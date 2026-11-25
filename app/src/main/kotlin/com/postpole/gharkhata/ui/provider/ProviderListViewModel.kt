@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.postpole.gharkhata.data.DayMarkEntity
 import com.postpole.gharkhata.data.DayStatus
+import com.postpole.gharkhata.data.MonthSettlementEntity
 import com.postpole.gharkhata.data.ProviderEntity
 import com.postpole.gharkhata.data.ProviderRepository
 import com.postpole.gharkhata.data.ProviderWithRates
@@ -33,6 +34,12 @@ data class ProviderRow(
     val ratePaise: Long?,
     /** Last [STRIP_DAYS] days ending today, oldest first. */
     val strip: List<StripDay>,
+    /** Current month has a settlement and nothing is left due. */
+    val isCurrentMonthSettled: Boolean = false,
+    /** Balance carried in from earlier months (negative = credit), in paise. */
+    val previousBalancePaise: Long = 0L,
+    /** monthTotalPaise + previousBalancePaise - settledThisMonthPaise. */
+    val netDuePaise: Long = monthTotalPaise,
 )
 
 data class ProviderListState(
@@ -55,23 +62,40 @@ class ProviderListViewModel @Inject constructor(
     private fun activeRows(today: Long): Flow<List<ProviderRow>> {
         val date = LocalDate.ofEpochDay(today)
         val yearMonth = date.year * 100 + date.monthValue
-        val monthStart = date.withDayOfMonth(1).toEpochDay()
-        val from = minOf(monthStart, today - (STRIP_DAYS - 1))
         return repository.observeActiveWithRates().flatMapLatest { list ->
             if (list.isEmpty()) {
                 flowOf(emptyList())
             } else {
-                combine(list.map { pr -> repository.observeMarks(pr.provider.id, from, today).map { row(pr, it, yearMonth, today) } }) {
-                    it.toList()
-                }
+                combine(
+                    list.map { pr ->
+                        combine(
+                            repository.observeMarks(pr.provider.id, Long.MIN_VALUE, today),
+                            repository.observeSettlements(pr.provider.id),
+                        ) { marks, settlements -> row(pr, marks, settlements, yearMonth, today) }
+                    },
+                ) { it.toList() }
             }
         }
     }
 
-    private fun row(pr: ProviderWithRates, marks: List<DayMarkEntity>, yearMonth: Int, today: Long): ProviderRow {
-        val bill = BillCalculator.compute(pr.provider, pr.rates, marks, yearMonth, today, emptyList())
+    private fun row(
+        pr: ProviderWithRates,
+        marks: List<DayMarkEntity>,
+        settlements: List<MonthSettlementEntity>,
+        yearMonth: Int,
+        today: Long,
+    ): ProviderRow {
+        // BillCalculator needs all of a provider's marks so earlier months carry the right balance.
+        val bill = BillCalculator.compute(pr.provider, pr.rates, marks, yearMonth, today, settlements)
+        val settled = settlements.firstOrNull { it.yearMonth == yearMonth }
+        val netDue = bill.totalPaise + bill.previousBalancePaise - (settled?.paidPaise ?: 0L)
         val rate = pr.rates.filter { it.effectiveFromEpochDay <= today }.maxByOrNull { it.effectiveFromEpochDay }?.amountPaise
-        return ProviderRow(pr.provider, bill.totalPaise, rate, strip(pr.provider, marks, today))
+        return ProviderRow(
+            pr.provider, bill.totalPaise, rate, strip(pr.provider, marks, today),
+            isCurrentMonthSettled = settled != null && netDue == 0L,
+            previousBalancePaise = bill.previousBalancePaise,
+            netDuePaise = netDue,
+        )
     }
 
     val state: StateFlow<ProviderListState> = combine(
