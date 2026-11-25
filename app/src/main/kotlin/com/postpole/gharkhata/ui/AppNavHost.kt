@@ -20,6 +20,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.postpole.gharkhata.ads.AdBanner
 import com.postpole.gharkhata.ads.AdsManager
 import com.postpole.gharkhata.ads.BannerPlacement
+import com.postpole.gharkhata.pro.ProPromptScreen
+import com.postpole.gharkhata.pro.ProPromptTrigger
+import com.postpole.gharkhata.pro.ProPrompts
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -120,12 +123,14 @@ internal fun isInterstitialDestination(route: String?): Boolean =
 private const val INTERSTITIAL_SETTLE_MS = 1_500L
 
 @Composable
-fun AppNavHost(ads: AdsManager, onScreen: (String) -> Unit = {}, goToToday: Int = 0) {
+fun AppNavHost(ads: AdsManager, prompts: ProPrompts, onScreen: (String) -> Unit = {}, goToToday: Int = 0) {
     val navController = rememberNavController()
     // Bumped each time Bill preview is left for Today / Providers / Month.
     var billExitTick by remember { mutableIntStateOf(0) }
     // True while a sheet / dialog is open on the Month screen: the banner is hidden meanwhile.
     var monthOverlayOpen by remember { mutableStateOf(false) }
+    // Set when the auto Pro sheet was granted on return from Bill preview; Month consumes it.
+    var autoProSheetRequest by remember { mutableStateOf(false) }
     DisposableEffect(navController) {
         var lastRoute: String? = null
         val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
@@ -147,16 +152,25 @@ fun AppNavHost(ads: AdsManager, onScreen: (String) -> Unit = {}, goToToday: Int 
     LaunchedEffect(route) {
         if (route == Routes.BILL && activity != null) ads.preloadInterstitial(activity)
     }
-    // Interstitial: only after Bill preview was popped, on Today / Providers / Month, Activity
-    // resumed, no sheet open, caps pass (checked in AdsManager), after a short settle delay.
+    // Back from Bill preview: an eligible auto Pro prompt wins over the interstitial, and any auto prompt
+    // already shown this session means no interstitial this session. Otherwise the interstitial: only
+    // on Today / Providers / Month, Activity resumed, no sheet open, caps pass (checked in AdsManager),
+    // after a short settle delay.
     LaunchedEffect(billExitTick) {
         if (billExitTick == 0 || activity == null) return@LaunchedEffect
+        if (navController.currentDestination?.route == Routes.PROVIDER_MONTH &&
+            prompts.reserve(ProPromptTrigger.BILL_MILESTONE, ProPromptScreen.PROVIDER_MONTH)
+        ) {
+            autoProSheetRequest = true
+            return@LaunchedEffect
+        }
+        if (prompts.autoPromptShownThisSession) return@LaunchedEffect
         delay(INTERSTITIAL_SETTLE_MS)
         if (isInterstitialDestination(navController.currentDestination?.route) &&
             !monthOverlayOpen &&
             lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
         ) {
-            ads.showInterstitialIfAllowed(activity)
+            if (ads.showInterstitialIfAllowed(activity)) prompts.onInterstitialShown()
         }
     }
 
@@ -236,6 +250,8 @@ fun AppNavHost(ads: AdsManager, onScreen: (String) -> Unit = {}, goToToday: Int 
                     onOpenBill = { id, ym -> navController.navigate(Routes.bill(id, ym)) },
                     onOpenYear = { id, ym -> navController.navigate(Routes.year(id, ym / 100)) },
                     onOverlayChanged = { monthOverlayOpen = it },
+                    autoProSheetRequest = autoProSheetRequest,
+                    onAutoProSheetConsumed = { autoProSheetRequest = false },
                 )
             }
             composable(

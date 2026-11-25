@@ -12,6 +12,10 @@ import com.postpole.gharkhata.ads.ConsentManager
 import com.postpole.gharkhata.ads.RemoteConfigAdsSettings
 import com.postpole.gharkhata.analytics.Analytics
 import com.postpole.gharkhata.analytics.createAnalytics
+import com.postpole.gharkhata.pro.ProPromptController
+import com.postpole.gharkhata.pro.ProPromptSettingsSource
+import com.postpole.gharkhata.pro.ProPrompts
+import com.postpole.gharkhata.pro.RemoteConfigProPromptSettings
 import com.postpole.gharkhata.review.ReviewPolicy
 import com.postpole.gharkhata.review.ReviewPrompter
 import com.postpole.gharkhata.billing.BillingGateway
@@ -95,6 +99,14 @@ object AppModule {
         dataStore = dataStore,
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     )
+
+    @Provides
+    @Singleton
+    fun provideProPromptSettings(@ApplicationContext context: Context): ProPromptSettingsSource =
+        RemoteConfigProPromptSettings(context)
+
+    @Provides
+    fun provideProPrompts(controller: ProPromptController): ProPrompts = controller
 
     @Provides
     @Singleton

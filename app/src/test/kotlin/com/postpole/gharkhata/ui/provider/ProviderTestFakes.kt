@@ -86,6 +86,7 @@ class FakeMarkDao : DayMarkDao {
         all.value = all.value.filterNot { it.providerId == providerId && it.epochDay == epochDay }
     }
 
+
     override suspend fun getAll(): List<DayMarkEntity> = all.value
     override suspend fun insertAll(marks: List<DayMarkEntity>) = Unit
     override suspend fun deleteAll() = Unit

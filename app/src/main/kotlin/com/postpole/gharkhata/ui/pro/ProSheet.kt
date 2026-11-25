@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CalendarViewMonth
 import androidx.compose.material.icons.outlined.Image
@@ -28,6 +29,8 @@ import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.TableChart
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -57,14 +60,35 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.postpole.gharkhata.BuildConfig
 import com.postpole.gharkhata.R
 import com.postpole.gharkhata.billing.BillingMessage
+import com.postpole.gharkhata.pro.ProDismissMethod
+import com.postpole.gharkhata.pro.ProPromptTrigger
 import com.postpole.gharkhata.ui.provider.BadgeShape
 import com.postpole.gharkhata.ui.provider.FREE_ACTIVE_PROVIDER_LIMIT
 import com.postpole.gharkhata.ui.theme.GharNumerals
 import com.postpole.gharkhata.ui.theme.GharShapesExtra
 import com.postpole.gharkhata.ui.theme.gharColors
 
-/** Why the Pro sheet was opened; shown under the price. */
-enum class ProReason { GENERAL, PROVIDER_LIMIT, BILL_IMAGE, CSV, YEAR_SUMMARY, REMINDER }
+/**
+ * Why the Pro sheet was opened; shown under the price. [autoTrigger] is set for the automatic sheet only.
+ * The hard gates (a locked feature was tapped) pause automatic prompts for 48 hours.
+ */
+enum class ProReason(val autoTrigger: ProPromptTrigger? = null) {
+    GENERAL, PROVIDER_LIMIT, BILL_IMAGE, CSV, YEAR_SUMMARY, REMINDER,
+    AUTO_BILL_MILESTONE(ProPromptTrigger.BILL_MILESTONE),
+    ;
+
+    val isHardGate: Boolean get() = this != GENERAL && autoTrigger == null
+}
+
+/** What was used to leave the sheet. */
+internal enum class ProSheetExit { CLOSE_BUTTON, NOT_NOW_BUTTON, SCRIM_OR_BACK }
+
+/** A scrim tap or the system back press is logged as `swipe`; the two buttons have their own values. */
+internal fun dismissMethodFor(exit: ProSheetExit): ProDismissMethod = when (exit) {
+    ProSheetExit.CLOSE_BUTTON -> ProDismissMethod.CLOSE
+    ProSheetExit.NOT_NOW_BUTTON -> ProDismissMethod.NOT_NOW
+    ProSheetExit.SCRIM_OR_BACK -> ProDismissMethod.SWIPE
+}
 
 /** What the sheet needs to draw itself; the screenshot tests build it directly. */
 data class ProSheetState(
@@ -86,8 +110,14 @@ data class ProSheetState(
 fun ProSheet(
     onDismiss: () -> Unit,
     reason: ProReason = ProReason.PROVIDER_LIMIT,
+    /** Auto prompt this sheet was opened from (the card's "See Pro"); carried into the purchase events. */
+    attribution: ProPromptTrigger? = reason.autoTrigger,
     viewModel: ProViewModel = hiltViewModel(),
 ) {
+    fun leave(exit: ProSheetExit) {
+        viewModel.onDismissed(reason, dismissMethodFor(exit))
+        onDismiss()
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val purchaseError = stringResource(R.string.pro_error_purchase)
     val launchError = stringResource(R.string.pro_error_launch)
@@ -107,12 +137,12 @@ fun ProSheet(
     val unavailable by viewModel.productUnavailable.collectAsStateWithLifecycle()
     val hasRemoveAds by viewModel.hasRemoveAds.collectAsStateWithLifecycle()
     val activity = LocalContext.current.findActivity()
-    LaunchedEffect(viewModel) { viewModel.onShown() }
+    LaunchedEffect(viewModel) { viewModel.onShown(reason, attribution) }
     // Once the purchase goes through the sheet has done its job.
     LaunchedEffect(isPro) { if (isPro) onDismiss() }
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { leave(ProSheetExit.SCRIM_OR_BACK) },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         shape = GharShapesExtra.SheetTop,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -123,11 +153,13 @@ fun ProSheet(
                 state = ProSheetState(
                     isPro, price, pending, unavailable,
                     canBuy = activity != null,
-                    showNoAds = BuildConfig.ADS_SHIPPING && !hasRemoveAds,
+                    showNoAds = BuildConfig.ADS_SHIPPING && !hasRemoveAds && reason.autoTrigger == null,
                 ),
                 reason = reason,
-                onBuy = { activity?.let(viewModel::buy) },
+                onBuy = { activity?.let { viewModel.buy(it, reason, attribution) } },
                 onRestore = viewModel::restore,
+                onClose = { leave(ProSheetExit.CLOSE_BUTTON) },
+                onNotNow = { leave(ProSheetExit.NOT_NOW_BUTTON) },
             )
             SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
         }
@@ -141,16 +173,15 @@ internal fun ProSheetContent(
     reason: ProReason,
     onBuy: () -> Unit,
     onRestore: () -> Unit,
+    onClose: () -> Unit = {},
+    onNotNow: () -> Unit = {},
 ) {
     val gk = MaterialTheme.gharColors
     val cs = MaterialTheme.colorScheme
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding()) {
         // Hero
-        Column(
-            Modifier.fillMaxWidth().clip(GharShapesExtra.SheetTop)
-                .background(Brush.verticalGradient(listOf(gk.heroVariant, gk.hero)))
-                .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 16.dp),
-        ) {
+        Box(Modifier.fillMaxWidth().clip(GharShapesExtra.SheetTop).background(Brush.verticalGradient(listOf(gk.heroVariant, gk.hero)))) {
+        Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 16.dp)) {
             Box(
                 Modifier.align(Alignment.CenterHorizontally).size(width = 32.dp, height = 4.dp)
                     .clip(CircleShape).background(gk.onHeroVariant.copy(alpha = 0.5f)),
@@ -162,7 +193,10 @@ internal fun ProSheetContent(
                     }
                 }
                 Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.pro_title), style = MaterialTheme.typography.headlineSmall, color = gk.onHero)
+                    Text(
+                        stringResource(if (reason == ProReason.AUTO_BILL_MILESTONE) R.string.pro_prompt_sheet_title else R.string.pro_title),
+                        style = MaterialTheme.typography.headlineSmall, color = gk.onHero,
+                    )
                     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(state.price ?: "—", style = GharNumerals.L, color = gk.lime, maxLines = 1)
                         Text(
@@ -178,6 +212,16 @@ internal fun ProSheetContent(
                 style = MaterialTheme.typography.bodyLarge, color = gk.onHeroVariant,
                 modifier = Modifier.padding(top = 12.dp),
             )
+        }
+        IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd).size(48.dp)) {
+            Icon(
+                Icons.Filled.Close,
+                contentDescription = stringResource(
+                    if (reason.autoTrigger != null) R.string.pro_prompt_close_cd else R.string.pro_sheet_close,
+                ),
+                tint = gk.onHero,
+            )
+        }
         }
 
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -230,6 +274,9 @@ internal fun ProSheetContent(
                     }
                 }
             }
+            TextButton(onClick = onNotNow, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.pro_prompt_not_now), style = MaterialTheme.typography.titleMedium)
+            }
             Box(
                 Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onRestore),
                 contentAlignment = Alignment.Center,
@@ -248,6 +295,7 @@ private fun reasonText(reason: ProReason): String = when (reason) {
     ProReason.YEAR_SUMMARY -> stringResource(R.string.pro_reason_year_summary)
     ProReason.REMINDER -> stringResource(R.string.pro_reason_reminder)
     ProReason.GENERAL -> stringResource(R.string.pro_reason_general)
+    ProReason.AUTO_BILL_MILESTONE -> stringResource(R.string.pro_prompt_sheet_subtitle)
 }
 
 @Composable
