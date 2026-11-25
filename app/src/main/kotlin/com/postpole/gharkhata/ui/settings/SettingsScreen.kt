@@ -1,6 +1,8 @@
 package com.postpole.gharkhata.ui.settings
 
+import android.appwidget.AppWidgetManager
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -36,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -76,6 +79,7 @@ import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.TableChart
 import androidx.compose.material.icons.outlined.Translate
+import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material3.Icon
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -85,6 +89,8 @@ import com.postpole.gharkhata.ui.pro.CrownIcon
 import com.postpole.gharkhata.ui.provider.BadgeShape
 import com.postpole.gharkhata.ui.theme.GharShapesExtra
 import com.postpole.gharkhata.ui.theme.gharColors
+import com.postpole.gharkhata.widget.TodayWidgetReceiver
+import kotlinx.coroutines.launch
 import java.util.Currency
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,6 +112,9 @@ fun SettingsScreen(
     val context = LocalContext.current
     val resolver = context.contentResolver
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val appWidgetManager = remember { AppWidgetManager.getInstance(context) }
+    val widgetPinSupported = remember { appWidgetManager.isRequestPinAppWidgetSupported }
 
     var showPro by rememberSaveable { mutableStateOf<String?>(null) }
     var showTheme by rememberSaveable { mutableStateOf(false) }
@@ -190,6 +199,15 @@ fun SettingsScreen(
             onPrivacyOptions = onPrivacyOptions,
             onPrivacy = {
                 context.openLink(Intent(Intent.ACTION_VIEW, Uri.parse(context.getString(R.string.privacy_policy_url))))
+            },
+            showWidgetPin = widgetPinSupported,
+            onWidgetPin = {
+                val requested = appWidgetManager.requestPinAppWidget(
+                    ComponentName(context, TodayWidgetReceiver::class.java), null, null,
+                )
+                if (!requested) {
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_widget_pin_unavailable)) }
+                }
             },
             onFeedback = {
                 val email = context.getString(R.string.support_email)
@@ -335,6 +353,8 @@ internal fun SettingsContent(
     showPrivacyOptions: Boolean = false,
     onPrivacyOptions: () -> Unit = {},
     onFeedback: () -> Unit = {},
+    showWidgetPin: Boolean = false,
+    onWidgetPin: () -> Unit = {},
 ) {
     val gk = MaterialTheme.gharColors
     val context = LocalContext.current
@@ -390,6 +410,12 @@ internal fun SettingsContent(
                     Icons.Outlined.Translate, stringResource(R.string.settings_language),
                     stringResource(R.string.settings_language_value, java.util.Locale.getDefault().getDisplayLanguage(java.util.Locale.getDefault())),
                 )
+                if (showWidgetPin) {
+                    SettingsRow(
+                        Icons.Outlined.Widgets, stringResource(R.string.settings_widget_pin_title),
+                        stringResource(R.string.settings_widget_pin_sub), onClick = onWidgetPin,
+                    )
+                }
             }
 
             SectionHeader(R.string.settings_section_appearance)

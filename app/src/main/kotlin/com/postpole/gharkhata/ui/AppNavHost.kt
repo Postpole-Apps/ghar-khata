@@ -204,6 +204,7 @@ fun AppNavHost(ads: AdsManager, onScreen: (String) -> Unit = {}, goToToday: Int 
                     onAddProvider = { navController.navigate(Routes.providerEdit(NEW_PROVIDER_ID)) },
                     onPreset = { navController.navigate(Routes.providerNew(it)) },
                     onOpenBills = { switchTab(Routes.PROVIDERS) },
+                    onOpenProvider = { navController.navigate(Routes.providerMonth(it)) },
                 )
             }
             composable(Routes.PROVIDERS) {
