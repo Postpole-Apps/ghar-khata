@@ -309,6 +309,10 @@
     <!-- Today: next bills -->
     <string name="today_next_bills">अगले बिल · %1$s</string>
     <string name="today_next_bills_desc">अगले बिल %1$s को बनेंगे। सेवाएँ खुलती हैं।</string>
+    <string name="today_prev_bills_one">%1$s · %2$s का बिल तैयार है</string>
+    <string name="today_prev_bills_many">%2$s के %1$d बिल तैयार हैं</string>
+    <string name="today_prev_bills_cd_one">%2$s के लिए %1$s का मासिक खाता खोलें</string>
+    <string name="today_prev_bills_cd_many">प्रोवाइडर सूची खोलें, %2$s के %1$d बिल देखने के लिए</string>
 
     <!-- Bill image / PDF -->
     <string name="bill_share_image">इमेज</string>

@@ -308,6 +308,10 @@
     <!-- Today: next bills -->
     <string name="today_next_bills">Next bills · %1$s</string>
     <string name="today_next_bills_desc">Next bills are due on %1$s. Opens Providers.</string>
+    <string name="today_prev_bills_one">%1$s · %2$s bill is ready</string>
+    <string name="today_prev_bills_many">%1$d bills from %2$s are ready</string>
+    <string name="today_prev_bills_cd_one">Open %1$s monthly register for %2$s</string>
+    <string name="today_prev_bills_cd_many">Open Providers to see %1$d bills from %2$s</string>
 
     <!-- Bill image / PDF -->
     <string name="bill_share_image">Image</string>
