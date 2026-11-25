@@ -80,6 +80,8 @@ import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.data.DayStatus
 import com.postpole.gharkhata.data.ProviderEntity
 import com.postpole.gharkhata.data.ProviderType
+import com.postpole.gharkhata.domain.PrevBillsCue
+import com.postpole.gharkhata.ui.month.BillTextFormatter
 import com.postpole.gharkhata.ui.pro.ProReason
 import com.postpole.gharkhata.ui.pro.ProSheet
 import com.postpole.gharkhata.ui.provider.PILL_HEIGHT
@@ -107,6 +109,7 @@ fun TodayScreen(
     onPreset: (ProviderType) -> Unit,
     onOpenBills: () -> Unit,
     onOpenProvider: (Long) -> Unit = {},
+    onOpenProviderMonth: (Long, Int) -> Unit = { _, _ -> },
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -123,6 +126,7 @@ fun TodayScreen(
         onOpenPro = { showPro = ProReason.GENERAL },
         onOpenBills = onOpenBills,
         onOpenProvider = onOpenProvider,
+        onOpenProviderMonth = onOpenProviderMonth,
     )
     showPro?.let { ProSheet(onDismiss = { showPro = null }, reason = it) }
 }
@@ -142,6 +146,7 @@ internal fun TodayContent(
     onOpenPro: () -> Unit,
     onOpenBills: () -> Unit = {},
     onOpenProvider: (Long) -> Unit = {},
+    onOpenProviderMonth: (Long, Int) -> Unit = { _, _ -> },
 ) {
     val gk = MaterialTheme.gharColors
     var qtyRow by remember { mutableStateOf<TodayRow?>(null) }
@@ -162,7 +167,7 @@ internal fun TodayContent(
             EmptyHero(state)
             PresetSheet(onPreset)
         } else {
-            Hero(state, onSelectDate, onPickDate = { showPicker = true }, onOpenBills = onOpenBills)
+            Hero(state, onSelectDate, onPickDate = { showPicker = true }, onOpenBills = onOpenBills, onOpenProviderMonth = onOpenProviderMonth)
             Sheet(state, onCycle, onEditQty = { qtyRow = it }, onAddProvider = onAddProvider, onOpenProvider = onOpenProvider)
         }
     }
@@ -272,7 +277,10 @@ private fun dateLabel(epochDay: Long, todayEpochDay: Long): String {
 }
 
 @Composable
-private fun Hero(state: TodayState, onSelectDate: (Long) -> Unit, onPickDate: () -> Unit, onOpenBills: () -> Unit) {
+private fun Hero(state: TodayState, onSelectDate: (Long) -> Unit, onPickDate: () -> Unit,
+    onOpenBills: () -> Unit,
+    onOpenProviderMonth: (Long, Int) -> Unit,
+) {
     val gk = MaterialTheme.gharColors
     Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         DayStrip(state, onSelectDate)
@@ -311,7 +319,9 @@ private fun Hero(state: TodayState, onSelectDate: (Long) -> Unit, onPickDate: ()
                     color = gk.onHero,
                 )
             }
-            NextBillsChip(state.todayEpochDay, onOpenBills)
+            val cue = state.prevBills
+            if (cue != null) PrevBillsChip(cue, onOpenBills, onOpenProviderMonth, Modifier.weight(1f, fill = false))
+            else NextBillsChip(state.todayEpochDay, onOpenBills)
         }
         Text(
             stringResource(R.string.today_hint),
@@ -319,6 +329,58 @@ private fun Hero(state: TodayState, onSelectDate: (Long) -> Unit, onPickDate: ()
             color = gk.onHeroVariant,
             modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 20.dp),
         )
+    }
+}
+
+/**
+ * Saffron "bills are ready" chip for days 1–5: earlier months still have something due. Names the provider (one)
+ * or counts them (several), never a rupee total. Replaces [NextBillsChip] in the hero row.
+ */
+@Composable
+private fun PrevBillsChip(
+    cue: PrevBillsCue,
+    onOpenBills: () -> Unit,
+    onOpenProviderMonth: (Long, Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val gk = MaterialTheme.gharColors
+    val month = BillTextFormatter.monthShort(cue.previousMonth, Locale.getDefault())
+    val single = cue.providers.singleOrNull()
+    val label: String
+    val desc: String
+    if (single != null) {
+        label = stringResource(R.string.today_prev_bills_one, single.name, month)
+        desc = stringResource(R.string.today_prev_bills_cd_one, single.name, month)
+    } else {
+        label = stringResource(R.string.today_prev_bills_many, cue.providers.size, month)
+        desc = stringResource(R.string.today_prev_bills_cd_many, cue.providers.size, month)
+    }
+    // The pill is 32 dp tall (grows when text wraps); the clickable box keeps a 48 dp touch target.
+    Box(
+        modifier.minimumInteractiveComponentSize().semantics { contentDescription = desc }
+            .clickable(role = Role.Button) {
+                if (single != null) onOpenProviderMonth(single.id, cue.previousYearMonth) else onOpenBills()
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            Modifier.heightIn(min = PILL_HEIGHT).clip(RoundedCornerShape(50)).background(gk.saffronContainer)
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                Icons.Outlined.CalendarMonth, contentDescription = null, tint = gk.onSaffronContainer,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                label,
+                style = MaterialTheme.typography.labelLarge,
+                color = gk.onSaffronContainer,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

@@ -10,6 +10,9 @@ import com.postpole.gharkhata.data.DayMarkEntity
 import com.postpole.gharkhata.data.DayStatus
 import com.postpole.gharkhata.data.ProviderEntity
 import com.postpole.gharkhata.data.ProviderRepository
+import com.postpole.gharkhata.domain.PrevBillsCue
+import com.postpole.gharkhata.domain.PreviousMonthBills
+import com.postpole.gharkhata.domain.ProviderBillInput
 import com.postpole.gharkhata.domain.Schedule
 import com.postpole.gharkhata.ui.provider.ProStatus
 import com.postpole.gharkhata.ui.provider.canAddActiveProvider
@@ -19,7 +22,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -48,6 +53,8 @@ data class TodayState(
     val extraCandidates: List<ProviderEntity> = emptyList(),
     val activeCount: Int = 0,
     val isPro: Boolean = false,
+    /** Days 1–5 only: providers with a carry from earlier months. Replaces the next-bills chip. */
+    val prevBills: PrevBillsCue? = null,
 ) {
     val noProviders: Boolean get() = activeCount == 0
     val canAddProvider: Boolean get() = canAddActiveProvider(activeCount, isPro)
@@ -73,7 +80,8 @@ class TodayViewModel @Inject constructor(
         repository.observeActive(),
         selected.flatMapLatest { repository.observeMarksForDay(it) },
         proStatus.isPro,
-    ) { day, providers, marks, isPro ->
+        observePrevBills(),
+    ) { day, providers, marks, isPro, prevBills ->
         val byProvider = marks.associateBy { it.providerId }
         val rows = providers.mapNotNull { p ->
             val mark = byProvider[p.id]
@@ -88,8 +96,28 @@ class TodayViewModel @Inject constructor(
             extraCandidates = providers.filter { it.id !in shown && day >= it.startEpochDay },
             activeCount = providers.size,
             isPro = isPro,
+            prevBills = prevBills,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TodayState(todayEpochDay, todayEpochDay))
+
+    /** Re-evaluates whenever rates, marks or settlements change, so settling clears the cue without a restart. */
+    private fun observePrevBills(): Flow<PrevBillsCue?> {
+        if (LocalDate.ofEpochDay(todayEpochDay).dayOfMonth !in PreviousMonthBills.WINDOW_DAYS) return flowOf(null)
+        return repository.observeActiveWithRates().flatMapLatest { list ->
+            if (list.isEmpty()) {
+                flowOf(null)
+            } else {
+                combine(
+                    list.map { pr ->
+                        combine(
+                            repository.observeMarks(pr.provider.id, pr.provider.startEpochDay, todayEpochDay),
+                            repository.observeSettlements(pr.provider.id),
+                        ) { marks, settlements -> ProviderBillInput(pr, marks, settlements) }
+                    },
+                ) { PreviousMonthBills.compute(todayEpochDay, it.toList()) }
+            }
+        }
+    }
 
     /** Moves to [epochDay]; future dates are ignored. */
     fun selectDate(epochDay: Long) {
