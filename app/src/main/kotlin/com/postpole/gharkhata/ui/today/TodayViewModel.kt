@@ -63,6 +63,7 @@ class TodayViewModel @Inject constructor(
     private val repository: ProviderRepository,
     proStatus: ProStatus,
     private val analytics: Analytics,
+    private val prompts: com.postpole.gharkhata.prompt.ProPromptStore = com.postpole.gharkhata.prompt.NoOpProPromptStore,
 ) : ViewModel() {
 
     private val todayEpochDay: Long = LocalDate.now().toEpochDay()
@@ -140,6 +141,7 @@ class TodayViewModel @Inject constructor(
                     ),
                 )
             }
+            prompts.recordDayMarked(day)
             analytics.logEvent(AnalyticsEvents.DAY_MARKED, mapOf(AnalyticsParams.STATUS to status.name))
         }
     }

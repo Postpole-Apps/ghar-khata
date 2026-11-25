@@ -35,6 +35,7 @@ class GharKhataApp : Application(), Configuration.Provider {
     @Inject lateinit var reminders: ReminderController
     @Inject lateinit var ads: AdsManager
     @Inject lateinit var providerRepository: ProviderRepository
+    @Inject lateinit var proPrompts: com.postpole.gharkhata.prompt.ProPromptRepository
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -44,6 +45,8 @@ class GharKhataApp : Application(), Configuration.Provider {
         billing.start()
         ads.start()
         logLaunch()
+        // One session per process start; also pulls the prompt Remote Config values.
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch { proPrompts.onSessionStart() }
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             // Re-runs whenever the entitlement changes (e.g. Play revokes Pro after a refund).
             billing.isPro.collect { reminders.reconcile() }
@@ -57,6 +60,7 @@ class GharKhataApp : Application(), Configuration.Provider {
                 override fun onStart(owner: LifecycleOwner) {
                     billing.onForeground()
                     ads.onForeground()
+                    proPrompts.refreshConfig()
                 }
             },
         )

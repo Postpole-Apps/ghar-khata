@@ -361,4 +361,14 @@
     <string name="settings_widget_pin_title">होम-स्क्रीन विजेट</string>
     <string name="settings_widget_pin_sub">आज की सूची होम स्क्रीन पर जोड़ें</string>
     <string name="settings_widget_pin_unavailable">इस लॉन्चर पर विजेट नहीं जुड़ सका</string>
+
+    <!-- NEEDS NATIVE REVIEW -->
+    <string name="pro_prompt_sheet_title">प्रो के साथ साफ़-सुथरा मासिक बिल भेजें</string>
+    <string name="pro_prompt_sheet_subtitle">घर खाता प्रो को एक बार में अनलॉक करें — इमेज और PDF बिल, दैनिक रिमाइंडर, सालाना सारांश और अनलिमिटेड प्रोवाइडर। आपका डेटा आपके फ़ोन में ही रहता है।</string>
+    <string name="pro_prompt_card_title">हिसाब सही चल रहा है? घर खाता प्रो देखें</string>
+    <string name="pro_prompt_card_body">व्हाट्सऐप पर इमेज और PDF बिल भेजें, दैनिक रिमाइंडर लगाएं और पूरा सालाना सारांश देखें। एक बार — %1$s।</string>
+    <string name="pro_prompt_card_body_no_price">व्हाट्सऐप पर इमेज और PDF बिल भेजें, दैनिक रिमाइंडर लगाएं और पूरा सालाना सारांश देखें। एक बार।</string>
+    <string name="pro_prompt_see_pro">प्रो देखें</string>
+    <string name="pro_prompt_not_now">अभी नहीं</string>
+    <string name="pro_prompt_close_cd">प्रो सुझाव बंद करें</string>
 </resources>

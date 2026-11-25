@@ -58,6 +58,10 @@ class BillingRepository(
     @Volatile
     private var inFlight: Product? = null
 
+    /** Auto-prompt `trigger` of the Pro purchase in flight (enum only), carried into purchase_started / purchase. */
+    @Volatile
+    private var purchaseTrigger: String? = null
+
     /** Pro product owned. Gates every Pro feature; Remove ads does NOT affect it. */
     val isPro: StateFlow<Boolean> = dataStore.data
         .map { it[IS_PRO] ?: false }
@@ -171,13 +175,14 @@ class BillingRepository(
         if (started) scope.launch { refresh() }
     }
 
-    fun launchPurchase(activity: Activity, product: Product = Product.PRO): Boolean {
+    fun launchPurchase(activity: Activity, product: Product = Product.PRO, trigger: String? = null): Boolean {
         val launched = gateway.launchPurchase(activity, product)
         if (launched) {
             inFlight = product
+            purchaseTrigger = if (product == Product.PRO) trigger else null
             analytics.logEvent(
                 if (product == Product.PRO) AnalyticsEvents.PURCHASE_STARTED else AnalyticsEvents.REMOVE_ADS_PURCHASE_START,
-                productParams(product),
+                productParams(product) + triggerParam(product),
             )
         } else {
             inFlight = null
@@ -187,6 +192,9 @@ class BillingRepository(
         }
         return launched
     }
+
+    private fun triggerParam(product: Product): Map<String, Any> =
+        purchaseTrigger?.takeIf { product == Product.PRO }?.let { mapOf(AnalyticsParams.TRIGGER to it) } ?: emptyMap()
 
     /** Product id / price / currency when Play has told us; no personal data. */
     private fun productParams(product: Product): Map<String, Any> {
@@ -268,7 +276,10 @@ class BillingRepository(
         val params = productParams(product)
         when (product) {
             Product.PRO -> when (source) {
-                Source.PURCHASE_FLOW -> analytics.logEvent(AnalyticsEvents.PURCHASE, params)
+                Source.PURCHASE_FLOW -> {
+                    analytics.logEvent(AnalyticsEvents.PURCHASE, params + triggerParam(product))
+                    purchaseTrigger = null
+                }
                 Source.REFRESH -> analytics.logEvent(AnalyticsEvents.PURCHASE_RESTORED, params)
             }
             Product.REMOVE_ADS ->

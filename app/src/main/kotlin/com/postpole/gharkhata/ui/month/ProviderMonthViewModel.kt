@@ -15,7 +15,12 @@ import com.postpole.gharkhata.data.ProviderRepository
 import com.postpole.gharkhata.domain.BillCalculator
 import com.postpole.gharkhata.domain.BillLineKind
 import com.postpole.gharkhata.domain.MonthBill
+import com.postpole.gharkhata.prompt.NoOpProPromptStore
+import com.postpole.gharkhata.prompt.ProPromptStore
 import com.postpole.gharkhata.ui.today.TodayViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -83,6 +88,7 @@ class ProviderMonthViewModel internal constructor(
     private val repository: ProviderRepository,
     private val analytics: Analytics,
     private val todayProvider: () -> Long,
+    private val prompts: ProPromptStore = NoOpProPromptStore,
 ) : ViewModel() {
 
     @Inject
@@ -90,7 +96,13 @@ class ProviderMonthViewModel internal constructor(
         savedState: SavedStateHandle,
         repository: ProviderRepository,
         analytics: Analytics,
-    ) : this(savedState, repository, analytics, { LocalDate.now().toEpochDay() })
+        prompts: ProPromptStore,
+    ) : this(savedState, repository, analytics, { LocalDate.now().toEpochDay() }, prompts)
+
+    private val _settlementSaved = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /** Emits after a settlement was saved and counted towards the bill milestone. */
+    val settlementSaved: SharedFlow<Unit> = _settlementSaved.asSharedFlow()
 
     val providerId: Long = savedState.get<Long>("id") ?: 0L
     private val todayEpochDay: Long = todayProvider()
@@ -176,6 +188,7 @@ class ProviderMonthViewModel internal constructor(
             } else {
                 repository.setMark(DayMarkEntity(provider.id, epochDay, stored, storedQty, cleanNote, System.currentTimeMillis()))
             }
+            prompts.recordDayMarked(epochDay)
             analytics.logEvent(AnalyticsEvents.DAY_MARKED, mapOf(AnalyticsParams.STATUS to stored.name))
         }
     }
@@ -206,12 +219,15 @@ class ProviderMonthViewModel internal constructor(
         viewModelScope.launch {
             repository.saveSettlement(settlement)
             analytics.logEvent(AnalyticsEvents.SETTLEMENT_SAVED, mapOf(AnalyticsParams.STATUS to if (paidPaise < bill.duePaise) "short" else "full"))
+            prompts.recordBillMilestone()
+            _settlementSaved.tryEmit(Unit)
         }
         return true
     }
 
     fun onShared(channel: String) {
         analytics.logEvent(AnalyticsEvents.BILL_SHARED, mapOf(AnalyticsParams.FORMAT to channel))
+        viewModelScope.launch { prompts.recordBillMilestone() }
     }
 
     companion object {

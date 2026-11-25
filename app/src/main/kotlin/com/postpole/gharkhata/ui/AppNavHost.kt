@@ -9,6 +9,14 @@ import android.content.ContextWrapper
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.key
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.postpole.gharkhata.prompt.ProPromptTrigger
+import com.postpole.gharkhata.prompt.ProPromptViewModel
+import com.postpole.gharkhata.prompt.PromptScreen
+import com.postpole.gharkhata.ui.pro.ProReason
+import com.postpole.gharkhata.ui.pro.ProSheet
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -122,6 +130,10 @@ private const val INTERSTITIAL_SETTLE_MS = 1_500L
 @Composable
 fun AppNavHost(ads: AdsManager, onScreen: (String) -> Unit = {}, goToToday: Int = 0) {
     val navController = rememberNavController()
+    val promptViewModel: ProPromptViewModel = hiltViewModel()
+    val scope = rememberCoroutineScope()
+    // The automatic bill sheet. Only ever opened while the Month screen is the current destination.
+    var autoProSheet by remember { mutableStateOf(false) }
     // Bumped each time Bill preview is left for Today / Providers / Month.
     var billExitTick by remember { mutableIntStateOf(0) }
     // True while a sheet / dialog is open on the Month screen: the banner is hidden meanwhile.
@@ -149,14 +161,24 @@ fun AppNavHost(ads: AdsManager, onScreen: (String) -> Unit = {}, goToToday: Int 
     }
     // Interstitial: only after Bill preview was popped, on Today / Providers / Month, Activity
     // resumed, no sheet open, caps pass (checked in AdsManager), after a short settle delay.
+    // An eligible automatic Pro sheet on Month wins and skips the interstitial for the session; an
+    // auto prompt already shown this session also skips it.
     LaunchedEffect(billExitTick) {
         if (billExitTick == 0 || activity == null) return@LaunchedEffect
         delay(INTERSTITIAL_SETTLE_MS)
-        if (isInterstitialDestination(navController.currentDestination?.route) &&
-            !monthOverlayOpen &&
+        val dest = navController.currentDestination?.route
+        if (isInterstitialDestination(dest) &&
+            !monthOverlayOpen && !autoProSheet &&
             lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
         ) {
-            ads.showInterstitialIfAllowed(activity)
+            if (dest == Routes.PROVIDER_MONTH &&
+                promptViewModel.shouldShow(ProPromptTrigger.BILL_MILESTONE, PromptScreen.PROVIDER_MONTH)
+            ) {
+                autoProSheet = true
+                return@LaunchedEffect
+            }
+            if (promptViewModel.autoPromptShownThisSession) return@LaunchedEffect
+            if (ads.showInterstitialIfAllowed(activity)) promptViewModel.onInterstitialShown()
         }
     }
 
@@ -184,7 +206,7 @@ fun AppNavHost(ads: AdsManager, onScreen: (String) -> Unit = {}, goToToday: Int 
             val isTab = TABS.any { it.route == route }
             val placement = bannerPlacementFor(route)
             Column {
-                if (bannersAllowed && placement != null && !(placement == BannerPlacement.MONTH && monthOverlayOpen)) {
+                if (bannersAllowed && placement != null && !(placement == BannerPlacement.MONTH && (monthOverlayOpen || autoProSheet))) {
                     // Above the floating nav on tabs; on non-tab screens it clears the system nav bar.
                     key(placement) {
                         AdBanner(placement, if (isTab) Modifier else Modifier.navigationBarsPadding())
@@ -236,6 +258,17 @@ fun AppNavHost(ads: AdsManager, onScreen: (String) -> Unit = {}, goToToday: Int 
                     onOpenBill = { id, ym -> navController.navigate(Routes.bill(id, ym)) },
                     onOpenYear = { id, ym -> navController.navigate(Routes.year(id, ym / 100)) },
                     onOverlayChanged = { monthOverlayOpen = it },
+                    onSettlementSaved = {
+                        scope.launch {
+                            // The paid dialog has closed by now; never open over it or a day sheet.
+                            if (navController.currentDestination?.route == Routes.PROVIDER_MONTH &&
+                                !monthOverlayOpen && !autoProSheet &&
+                                promptViewModel.shouldShow(ProPromptTrigger.BILL_MILESTONE, PromptScreen.PROVIDER_MONTH)
+                            ) {
+                                autoProSheet = true
+                            }
+                        }
+                    },
                 )
             }
             composable(
@@ -263,6 +296,9 @@ fun AppNavHost(ads: AdsManager, onScreen: (String) -> Unit = {}, goToToday: Int 
                     onPrivacyOptions = { activity?.let { ads.showPrivacyOptions(it) } },
                 )
             }
+        }
+        if (autoProSheet) {
+            ProSheet(onDismiss = { autoProSheet = false }, reason = ProReason.AUTO_BILL_MILESTONE)
         }
     }
 }

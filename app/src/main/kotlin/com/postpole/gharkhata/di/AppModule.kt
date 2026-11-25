@@ -12,6 +12,9 @@ import com.postpole.gharkhata.ads.ConsentManager
 import com.postpole.gharkhata.ads.RemoteConfigAdsSettings
 import com.postpole.gharkhata.analytics.Analytics
 import com.postpole.gharkhata.analytics.createAnalytics
+import com.postpole.gharkhata.prompt.ProPromptRepository
+import com.postpole.gharkhata.prompt.ProPromptStore
+import com.postpole.gharkhata.prompt.RemoteConfigProPromptSettings
 import com.postpole.gharkhata.review.ReviewPolicy
 import com.postpole.gharkhata.review.ReviewPrompter
 import com.postpole.gharkhata.billing.BillingGateway
@@ -105,6 +108,29 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAnalytics(@ApplicationContext context: Context): Analytics = createAnalytics(context)
+
+    @Provides
+    @Singleton
+    fun provideProPromptRepository(
+        @ApplicationContext context: Context,
+        dataStore: DataStore<Preferences>,
+        billing: BillingRepository,
+    ): ProPromptRepository = ProPromptRepository(
+        dataStore = dataStore,
+        config = RemoteConfigProPromptSettings(context),
+        installTimeMs = {
+            try {
+                context.packageManager.getPackageInfo(context.packageName, 0).firstInstallTime
+            } catch (_: Exception) {
+                System.currentTimeMillis()
+            }
+        },
+        isPro = { billing.isPro.value },
+        hasRemoveAds = { billing.hasRemoveAds.value },
+    )
+
+    @Provides
+    fun provideProPromptStore(repository: ProPromptRepository): ProPromptStore = repository
 
     @Provides
     fun provideReviewPrompter(policy: ReviewPolicy): ReviewPrompter = policy

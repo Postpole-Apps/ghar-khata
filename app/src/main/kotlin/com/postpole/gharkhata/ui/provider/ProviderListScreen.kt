@@ -31,7 +31,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,6 +51,11 @@ import com.postpole.gharkhata.R
 import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.data.ProviderEntity
 import com.postpole.gharkhata.domain.Money
+import com.postpole.gharkhata.prompt.ProPromptTrigger
+import com.postpole.gharkhata.prompt.ProPromptViewModel
+import com.postpole.gharkhata.prompt.PromptScreen
+import com.postpole.gharkhata.ui.pro.ProDismissMethod
+import com.postpole.gharkhata.ui.pro.ProInlineCard
 import com.postpole.gharkhata.ui.pro.ProReason
 import com.postpole.gharkhata.ui.pro.ProSheet
 import com.postpole.gharkhata.ui.theme.GharNumerals
@@ -66,15 +73,39 @@ fun ProviderListScreen(
     onAddProvider: () -> Unit,
     onOpenSettings: () -> Unit,
     viewModel: ProviderListViewModel = hiltViewModel(),
+    promptViewModel: ProPromptViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showPro by remember { mutableStateOf<ProReason?>(null) }
+    val markedDays by promptViewModel.markedDays.collectAsStateWithLifecycle(0)
+    val price by promptViewModel.price.collectAsStateWithLifecycle()
+    var cardVisible by rememberSaveable { mutableStateOf(false) }
+    // Never stacks with the 3/3 FreeLimitCard. Once the policy lets the card in, it stays until dismissed.
+    val atFreeLimit = state.active.size >= FREE_ACTIVE_PROVIDER_LIMIT
+    LaunchedEffect(state.isPro, state.active.size, markedDays) {
+        if (!cardVisible && !state.isPro && state.active.isNotEmpty() &&
+            promptViewModel.shouldShow(ProPromptTrigger.MARKED_DAYS_MILESTONE, PromptScreen.PROVIDER_LIST, atFreeLimit)
+        ) {
+            cardVisible = true
+            promptViewModel.onCardShown()
+        }
+    }
     ProviderListContent(
         state = state,
         onOpenProvider = onOpenProvider,
         onAddProvider = { if (state.canAdd) onAddProvider() else showPro = ProReason.PROVIDER_LIMIT },
         onSeePro = { showPro = if (state.canAdd) ProReason.GENERAL else ProReason.PROVIDER_LIMIT },
         onOpenSettings = onOpenSettings,
+        showProCard = cardVisible && !atFreeLimit && !state.isPro,
+        proPrice = price,
+        onProCardSeePro = {
+            promptViewModel.onCardCtaTap()
+            showPro = ProReason.AUTO_MARKED_DAYS_MILESTONE
+        },
+        onProCardDismiss = { method ->
+            cardVisible = false
+            promptViewModel.onCardDismissed(method)
+        },
     )
     showPro?.let { ProSheet(onDismiss = { showPro = null }, reason = it) }
 }
@@ -87,6 +118,10 @@ internal fun ProviderListContent(
     onAddProvider: () -> Unit,
     onSeePro: () -> Unit,
     onOpenSettings: () -> Unit = {},
+    showProCard: Boolean = false,
+    proPrice: String? = null,
+    onProCardSeePro: () -> Unit = {},
+    onProCardDismiss: (ProDismissMethod) -> Unit = {},
     showArchivedInitially: Boolean = true,
     today: LocalDate = LocalDate.now(),
 ) {
@@ -168,6 +203,16 @@ internal fun ProviderListContent(
                 }
                 items(state.active.size, key = { state.active[it].provider.id }) { i ->
                     ActiveRow(state.active[i], style = i % 3, today = today, onClick = { onOpenProvider(state.active[i].provider.id) })
+                }
+                if (showProCard) {
+                    item(key = "pro-card") {
+                        ProInlineCard(
+                            price = proPrice,
+                            onSeePro = onProCardSeePro,
+                            onClose = { onProCardDismiss(ProDismissMethod.CLOSE) },
+                            onNotNow = { onProCardDismiss(ProDismissMethod.NOT_NOW) },
+                        )
+                    }
                 }
                 if (showArchived && state.archived.isNotEmpty()) {
                     item(key = "archived-header") {

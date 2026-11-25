@@ -87,12 +87,14 @@ fun ProviderMonthScreen(
     onOpenBill: (providerId: Long, yearMonth: Int) -> Unit,
     onOpenYear: (providerId: Long, yearMonth: Int) -> Unit,
     onOverlayChanged: (Boolean) -> Unit = {},
+    onSettlementSaved: () -> Unit = {},
     viewModel: ProviderMonthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var editDay by remember { mutableStateOf<Long?>(null) }
     var showPaid by remember { mutableStateOf(false) }
     var showPro by remember { mutableStateOf(false) }
+    LaunchedEffect(viewModel) { viewModel.settlementSaved.collect { onSettlementSaved() } }
     // The banner is hidden while DayMarkSheet / ProSheet / the paid dialog is open.
     val overlayOpen = editDay != null || showPaid || showPro
     LaunchedEffect(overlayOpen) { onOverlayChanged(overlayOpen) }
