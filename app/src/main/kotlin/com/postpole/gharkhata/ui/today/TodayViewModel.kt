@@ -10,6 +10,7 @@ import com.postpole.gharkhata.data.DayMarkEntity
 import com.postpole.gharkhata.data.DayStatus
 import com.postpole.gharkhata.data.ProviderEntity
 import com.postpole.gharkhata.data.ProviderRepository
+import com.postpole.gharkhata.data.SettingsRepository
 import com.postpole.gharkhata.domain.PrevBillsCue
 import com.postpole.gharkhata.domain.PreviousMonthBills
 import com.postpole.gharkhata.domain.ProviderBillInput
@@ -70,6 +71,7 @@ class TodayViewModel @Inject constructor(
     private val repository: ProviderRepository,
     proStatus: ProStatus,
     private val analytics: Analytics,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
 
     private val todayEpochDay: Long = LocalDate.now().toEpochDay()
@@ -117,6 +119,12 @@ class TodayViewModel @Inject constructor(
                 ) { PreviousMonthBills.compute(todayEpochDay, it.toList()) }
             }
         }
+    }
+
+    /** Called when Today is on screen: remembers the real date so the daily reminder can stay quiet. */
+    fun recordTodayOpened() {
+        val now = LocalDate.now().toEpochDay()
+        viewModelScope.launch { settings.setLastTodayOpenEpochDay(now) }
     }
 
     /** Moves to [epochDay]; future dates are ignored. */

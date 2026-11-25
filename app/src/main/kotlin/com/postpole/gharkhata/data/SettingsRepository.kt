@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -49,6 +50,13 @@ class SettingsRepository @Inject constructor(
         dataStore.edit { if (minutes == null) it.remove(REMINDER_MINUTES) else it[REMINDER_MINUTES] = minutes }
     }
 
+    /** Epoch day Today was last shown on its real date; null = never. The reminder stays quiet if it equals today. */
+    val lastTodayOpenEpochDay: Flow<Long?> = dataStore.data.map { it[LAST_TODAY_OPEN] }
+
+    suspend fun setLastTodayOpenEpochDay(epochDay: Long) {
+        dataStore.edit { it[LAST_TODAY_OPEN] = epochDay }
+    }
+
     suspend fun setDynamicColor(enabled: Boolean) {
         dataStore.edit { it[DYNAMIC_COLOR] = enabled }
     }
@@ -63,6 +71,7 @@ class SettingsRepository @Inject constructor(
 
     private companion object {
         val REMINDER_MINUTES = intPreferencesKey("reminder_minutes")
+        val LAST_TODAY_OPEN = longPreferencesKey("last_today_open_epoch_day")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val DEFAULT_CURRENCY = stringPreferencesKey("default_currency")

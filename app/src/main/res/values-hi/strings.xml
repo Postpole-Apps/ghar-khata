@@ -358,6 +358,13 @@
     <string name="reminder_channel_name">रोज़ का रिमाइंडर</string>
     <string name="reminder_notification_title">आज दर्ज करें</string>
     <string name="reminder_notification_text">सिर्फ़ वही दबाएँ जो आज बदला। बिल अपने आप जुड़ जाएगा।</string>
+    <string name="reminder_notification_title_bills">%1$s के बिल तैयार</string>
+    <string name="reminder_notification_text_bills_one">%1$s का %2$s बिल शेयर करने के लिए तैयार है।</string>
+    <string name="reminder_notification_text_bills_many">%2$s के %1$d बिल शेयर करने के लिए तैयार हैं।</string>
+    <plurals name="reminder_notification_text_scheduled">
+        <item quantity="one">आज %1$d का शेड्यूल है। सिर्फ़ बदलाव पर टैप करें।</item>
+        <item quantity="other">आज %1$d का शेड्यूल है। सिर्फ़ बदलाव पर टैप करें।</item>
+    </plurals>
     <string name="providers_status_settled">हिसाब पूरा</string>
     <string name="providers_status_prev_due">पिछला बाकी %1$s</string>
     <string name="providers_status_credit">क्रेडिट %1$s</string>

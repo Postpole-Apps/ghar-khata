@@ -5,6 +5,7 @@ import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.data.DayStatus
 import com.postpole.gharkhata.data.ProviderEntity
 import com.postpole.gharkhata.data.ProviderType
+import com.postpole.gharkhata.data.SettingsRepository
 import com.postpole.gharkhata.domain.Schedule
 import com.postpole.gharkhata.ui.provider.FakeProStatus
 import com.postpole.gharkhata.ui.provider.RecordingAnalytics
@@ -33,6 +34,11 @@ class TodayViewModelTest {
 
     private val db = TestDb()
     private val analytics = RecordingAnalytics()
+    private val settings = SettingsRepository(
+        androidx.datastore.preferences.core.PreferenceDataStoreFactory.create {
+            java.io.File.createTempFile("today", ".preferences_pb").also { it.delete() }
+        },
+    )
     private val start = LocalDate.of(2020, 1, 1).toEpochDay()
 
     /** A Sunday and the Monday after it, both safely in the past. */
@@ -62,7 +68,7 @@ class TodayViewModelTest {
     }
 
     private fun TestScope.vm(): TodayViewModel {
-        val vm = TodayViewModel(db.repository, FakeProStatus(), analytics)
+        val vm = TodayViewModel(db.repository, FakeProStatus(), analytics, settings)
         backgroundScope.launch(UnconfinedTestDispatcher()) { vm.state.collect { } }
         return vm
     }
