@@ -86,7 +86,6 @@ class FakeMarkDao : DayMarkDao {
         all.value = all.value.filterNot { it.providerId == providerId && it.epochDay == epochDay }
     }
 
-    override suspend fun countDistinctMarkedDays(): Int = all.value.map { it.epochDay }.distinct().size
 
     override suspend fun getAll(): List<DayMarkEntity> = all.value
     override suspend fun insertAll(marks: List<DayMarkEntity>) = Unit

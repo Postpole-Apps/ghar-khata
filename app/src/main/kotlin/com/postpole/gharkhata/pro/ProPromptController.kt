@@ -10,13 +10,15 @@ import com.postpole.gharkhata.analytics.Analytics
 import com.postpole.gharkhata.analytics.AnalyticsEvents
 import com.postpole.gharkhata.analytics.AnalyticsParams
 import com.postpole.gharkhata.billing.BillingRepository
-import com.postpole.gharkhata.data.DayMarkDao
+import com.postpole.gharkhata.data.ProviderDao
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.time.Instant
+import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -69,7 +71,7 @@ object NoProPrompts : ProPrompts {
 @Singleton
 class ProPromptController(
     private val dataStore: DataStore<Preferences>,
-    private val markDao: DayMarkDao,
+    private val providerDao: ProviderDao,
     private val source: ProPromptSettingsSource,
     private val analytics: Analytics,
     override val price: StateFlow<String?>,
@@ -77,18 +79,19 @@ class ProPromptController(
     private val hasRemoveAds: suspend () -> Boolean,
     private val installTimeMs: () -> Long,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val zone: () -> ZoneId = ZoneId::systemDefault,
 ) : ProPrompts {
 
     @Inject
     constructor(
         @ApplicationContext context: Context,
         dataStore: DataStore<Preferences>,
-        markDao: DayMarkDao,
+        providerDao: ProviderDao,
         source: ProPromptSettingsSource,
         analytics: Analytics,
         billing: BillingRepository,
     ) : this(
-        dataStore, markDao, source, analytics, billing.price,
+        dataStore, providerDao, source, analytics, billing.price,
         isPro = billing::isProStored,
         hasRemoveAds = billing::hasRemoveAdsStored,
         installTimeMs = { context.packageManager.getPackageInfo(context.packageName, 0).firstInstallTime },
@@ -103,7 +106,10 @@ class ProPromptController(
     @Volatile private var interstitialShownThisSession = false
 
     /** Call once from Application.onCreate (also done lazily by the first evaluation). */
-    suspend fun startSession() = lock.withLock { countSession() }
+    suspend fun startSession() = lock.withLock {
+        countSession()
+        countActiveDay()
+    }
 
     fun refreshSettings() = source.refresh()
 
@@ -111,6 +117,18 @@ class ProPromptController(
         if (sessionCounted) return
         sessionCounted = true
         dataStore.edit { it[SESSIONS] = (it[SESSIONS] ?: 0) + 1 }
+    }
+
+    /** Counts today once, and only when at least one active provider exists. Call with [lock] held. */
+    private suspend fun countActiveDay() {
+        if (providerDao.countActive().first() < 1) return
+        val today = Instant.ofEpochMilli(clock()).atZone(zone()).toLocalDate().toEpochDay()
+        dataStore.edit {
+            if (it[LAST_ACTIVE_DAY] != today) {
+                it[LAST_ACTIVE_DAY] = today
+                it[ACTIVE_DAYS] = (it[ACTIVE_DAYS] ?: 0) + 1
+            }
+        }
     }
 
     override fun onInterstitialShown() {
@@ -129,6 +147,7 @@ class ProPromptController(
     override suspend fun reserve(trigger: ProPromptTrigger, screen: ProPromptScreen, freeLimitCardShowing: Boolean): Boolean =
         lock.withLock {
             countSession()
+            countActiveDay()
             val now = clock()
             val ok = ProPromptPolicy.evaluate(
                 trigger = trigger,
@@ -190,7 +209,7 @@ class ProPromptController(
             cardDismissals = card.associateWith { prefs[cardDismissalsKey(it)] ?: 0 },
             lastHardGateAt = prefs[LAST_HARD_GATE],
             billMilestones = prefs[BILL_MILESTONES] ?: 0,
-            distinctMarkedDays = markDao.countDistinctMarkedDays(),
+            distinctMarkedDays = prefs[ACTIVE_DAYS] ?: 0,
         )
     }
 
@@ -200,6 +219,8 @@ class ProPromptController(
         val SHEET_DISMISSALS = intPreferencesKey("pro_prompt_sheet_dismissals")
         val LAST_CARD = longPreferencesKey("pro_prompt_last_card_at")
         val LAST_HARD_GATE = longPreferencesKey("pro_prompt_last_hard_gate_at")
+        val ACTIVE_DAYS = intPreferencesKey("pro_prompt_active_days_count")
+        val LAST_ACTIVE_DAY = longPreferencesKey("pro_prompt_last_active_day")
         val BILL_MILESTONES = intPreferencesKey("pro_prompt_bill_milestones_count")
         fun cardDismissedAtKey(t: ProPromptTrigger) = longPreferencesKey("pro_prompt_card_dismissed_" + t.analytics + "_at")
         fun cardDismissalsKey(t: ProPromptTrigger) = intPreferencesKey("pro_prompt_card_dismissals_" + t.analytics)

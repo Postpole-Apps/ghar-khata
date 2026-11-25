@@ -2,9 +2,13 @@ package com.postpole.gharkhata.pro
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.postpole.gharkhata.analytics.Analytics
-import com.postpole.gharkhata.data.DayMarkEntity
-import com.postpole.gharkhata.data.DayStatus
-import com.postpole.gharkhata.ui.provider.FakeMarkDao
+import androidx.datastore.preferences.core.edit
+import com.postpole.gharkhata.data.BillingMode
+import com.postpole.gharkhata.data.ProviderEntity
+import com.postpole.gharkhata.data.ProviderType
+import com.postpole.gharkhata.ui.provider.FakeProviderDao
+import com.postpole.gharkhata.ui.provider.FakeRateDao
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
@@ -15,6 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.time.ZoneOffset
 import java.util.concurrent.TimeUnit
 
 class ProPromptControllerTest {
@@ -23,7 +28,7 @@ class ProPromptControllerTest {
     private val day = TimeUnit.DAYS.toMillis(1)
     private var now = 100 * day
     private val installedAt = 10 * day
-    private val marks = FakeMarkDao()
+    private val providers = FakeProviderDao(FakeRateDao())
     private val events = mutableListOf<Pair<String, Map<String, Any>>>()
     private val analytics = object : Analytics {
         override fun logEvent(name: String, params: Map<String, Any>) { events += name to params }
@@ -41,14 +46,30 @@ class ProPromptControllerTest {
 
     /** A new controller on the same DataStore is a new session (app process). */
     private fun session(): ProPromptController = ProPromptController(
-        dataStore = dataStore.value, markDao = marks, source = settings, analytics = analytics,
+        dataStore = dataStore.value, providerDao = providers, source = settings, analytics = analytics,
         price = MutableStateFlow("price"), isPro = { pro }, hasRemoveAds = { removeAds },
-        installTimeMs = { installedAt }, clock = { now },
+        installTimeMs = { installedAt }, clock = { now }, zone = { ZoneOffset.UTC },
     )
 
-    private suspend fun markDays(n: Int) = repeat(n) {
-        marks.upsert(DayMarkEntity(1, it.toLong(), DayStatus.ABSENT, null, null, 0))
+    private suspend fun addProvider(archived: Boolean = false) {
+        providers.upsert(
+            ProviderEntity(
+                name = "Milk", type = ProviderType.MILK, billingMode = BillingMode.PER_UNIT, unitLabel = "L",
+                startEpochDay = 0, archived = archived, createdAt = 0,
+            ),
+        )
     }
+
+    /** Puts the stored active-day count at [n] (and an active provider in place), as if used on n days. */
+    private suspend fun markDays(n: Int) {
+        addProvider()
+        dataStore.value.edit {
+            it[ProPromptController.ACTIVE_DAYS] = n
+            it[ProPromptController.LAST_ACTIVE_DAY] = now / day
+        }
+    }
+
+    private suspend fun activeDays() = dataStore.value.data.first()[ProPromptController.ACTIVE_DAYS] ?: 0
 
     private suspend fun ProPromptController.billSheet() =
         reserve(ProPromptTrigger.BILL_MILESTONE, ProPromptScreen.PROVIDER_MONTH)
@@ -78,13 +99,51 @@ class ProPromptControllerTest {
         assertFalse(s.billSheet())
     }
 
-    @Test fun cardNeedsTheMarkedDaysFromTheDao() = runBlocking {
-        markDays(6)
+    @Test fun twoSessionsOnTheSameDayCountOnce() = runBlocking {
+        addProvider()
         session().startSession()
+        session().startSession()
+        session().card()
+        assertEquals(1, activeDays())
+    }
+
+    @Test fun eachNewDayAddsOne() = runBlocking {
+        addProvider()
+        session().startSession()
+        now += day
+        session().startSession()
+        assertEquals(2, activeDays())
+        // A long-running process crossing midnight counts through its next prompt check.
         val s = session()
-        assertFalse(s.card())
-        marks.upsert(DayMarkEntity(1, 99, DayStatus.HALF, null, null, 0))
-        assertTrue(s.card())
+        s.startSession()
+        now += day
+        s.card()
+        assertEquals(3, activeDays())
+    }
+
+    @Test fun dayWithNoActiveProviderDoesNotCount() = runBlocking {
+        session().startSession()
+        assertEquals(0, activeDays())
+        addProvider(archived = true)
+        now += day
+        session().startSession()
+        assertEquals(0, activeDays())
+        addProvider()
+        now += day
+        session().startSession()
+        assertEquals(1, activeDays())
+    }
+
+    @Test fun cardBecomesEligibleAtSevenActiveDays() = runBlocking {
+        addProvider()
+        repeat(5) { session().startSession(); now += day }
+        session().startSession()
+        assertEquals(6, activeDays())
+        assertFalse(session().card())
+        now += day
+        // The seventh active day is counted by the evaluation itself.
+        assertTrue(session().card())
+        assertEquals(7, activeDays())
     }
 
     @Test fun sheetNeedsThirdSessionTwoMilestonesAndInstallAge() = runBlocking {
