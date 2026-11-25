@@ -1,5 +1,6 @@
 package com.postpole.gharkhata.widget
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import androidx.glance.appwidget.GlanceAppWidget
@@ -29,6 +30,12 @@ class TodayWidgetReceiver : GlanceAppWidgetReceiver() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
+        MidnightScheduler.schedule(context)
+    }
+
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        super.onUpdate(context, appWidgetManager, appWidgetIds)
+        // Alarms are wiped on reboot; the system sends APPWIDGET_UPDATE after boot and app updates, so re-arm midnight here.
         MidnightScheduler.schedule(context)
     }
 
