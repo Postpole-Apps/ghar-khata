@@ -357,6 +357,13 @@
     <string name="reminder_channel_name">Daily reminder</string>
     <string name="reminder_notification_title">Mark today</string>
     <string name="reminder_notification_text">Tap only what changed today. The bill adds itself up.</string>
+    <string name="reminder_notification_title_bills">%1$s bills ready</string>
+    <string name="reminder_notification_text_bills_one">%1$s\'s %2$s bill is ready to share.</string>
+    <string name="reminder_notification_text_bills_many">%1$d bills from %2$s are ready to share.</string>
+    <plurals name="reminder_notification_text_scheduled">
+        <item quantity="one">%1$d scheduled today. Tap only what changed.</item>
+        <item quantity="other">%1$d scheduled today. Tap only what changed.</item>
+    </plurals>
     <string name="providers_status_settled">Settled</string>
     <string name="providers_status_prev_due">Prev. due %1$s</string>
     <string name="providers_status_credit">Credit %1$s</string>
