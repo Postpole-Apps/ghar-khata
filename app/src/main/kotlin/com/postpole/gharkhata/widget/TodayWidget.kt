@@ -42,6 +42,8 @@ import com.postpole.gharkhata.MainActivity
 import com.postpole.gharkhata.R
 import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.data.DayStatus
+import com.postpole.gharkhata.domain.PrevBillsCue
+import com.postpole.gharkhata.ui.month.BillTextFormatter
 import com.postpole.gharkhata.ui.theme.DarkColors
 import com.postpole.gharkhata.ui.theme.DarkGharColors
 import com.postpole.gharkhata.ui.theme.LightColors
@@ -65,7 +67,9 @@ private object WidgetColors {
     val absent = pair(LightColors.errorContainer, DarkColors.errorContainer)
     val onAbsent = pair(LightColors.onErrorContainer, DarkColors.onErrorContainer)
     val half = pair(LightGharColors.saffronContainer, DarkGharColors.saffronContainer)
-    val onHalf = pair(LightGharColors.onSaffronContainer, DarkGharColors.onSaffronContainer)
+    /** Text-safe saffron for the cue: 7.75:1 on the light hero, 9.64:1 on the dark hero. */
+    val saffronText = pair(DarkGharColors.saffron, DarkGharColors.saffron)
+    val onHalf =pair(LightGharColors.onSaffronContainer, DarkGharColors.onSaffronContainer)
 }
 
 private val COMPACT = DpSize(110.dp, 110.dp)
@@ -82,13 +86,17 @@ class TodayWidget : GlanceAppWidget() {
         val today = LocalDate.now().toEpochDay()
         val providers = repository.observeActive().first()
         val marks = repository.observeMarksForDay(today).first()
-        val state = TodayWidgetState.build(providers, marks, today)
-        provideContent { TodayWidgetContent(state) }
+        val state = TodayWidgetState.withPrevBills(
+            TodayWidgetState.build(providers, marks, today),
+            TodayWidgetState.loadPrevBills(repository, today),
+        )
+        val fontScale = context.resources.configuration.fontScale
+        provideContent { TodayWidgetContent(state, fontScale) }
     }
 }
 
 @Composable
-private fun TodayWidgetContent(state: TodayState) {
+private fun TodayWidgetContent(state: TodayState, fontScale: Float) {
     val context = LocalContext.current
     val open = actionStartActivity(MainActivity.openTodayIntent(context))
     val wide = LocalSize.current.width >= WIDE.width
@@ -98,24 +106,30 @@ private fun TodayWidgetContent(state: TodayState) {
     ) {
         when {
             state.noProviders -> EmptyContent()
-            wide -> WideContent(state)
-            else -> Header(state, compact = true)
+            wide -> WideContent(state, fontScale)
+            else -> Header(state, compact = true, fontScale = fontScale)
         }
     }
 }
 
 @Composable
-private fun Header(state: TodayState, compact: Boolean) {
+private fun Header(state: TodayState, compact: Boolean, fontScale: Float) {
     val context = LocalContext.current
     val total = state.rows.size
     val date = LocalDate.ofEpochDay(state.epochDay)
         .format(DateTimeFormatter.ofPattern("EEE, d MMM", Locale.getDefault()))
     val changes = context.resources.getQuantityString(R.plurals.today_changes, state.changes, state.changes)
+    val cue = state.prevBills?.takeIf { it.providers.isNotEmpty() }
+    val cueFirst = TodayWidgetState.cueFirst(fontScale, cue != null)
     Column(GlanceModifier.fillMaxWidth()) {
         Text(
             date,
             style = TextStyle(color = WidgetColors.onBackgroundVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold),
         )
+        if (cueFirst && cue != null) {
+            PrevBillsLine(context, cue, compact)
+            return@Column
+        }
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 "$total",
@@ -127,11 +141,38 @@ private fun Header(state: TodayState, compact: Boolean) {
                 modifier = GlanceModifier.padding(start = 6.dp, bottom = 3.dp),
             )
         }
-        Text(
-            changes,
-            style = TextStyle(color = WidgetColors.onBackground, fontSize = 12.sp, fontWeight = FontWeight.Medium),
-        )
+        if (cue != null) {
+            PrevBillsLine(context, cue, compact)
+        } else {
+            Text(
+                changes,
+                style = TextStyle(color = WidgetColors.onBackground, fontSize = 12.sp, fontWeight = FontWeight.Medium),
+            )
+        }
     }
+}
+
+/** Saffron bills-ready line that replaces the changes line. Tapping it (like the rest of the widget) opens Today. */
+@Composable
+private fun PrevBillsLine(context: Context, cue: PrevBillsCue, compact: Boolean) {
+    val month = BillTextFormatter.monthShort(cue.previousMonth, Locale.getDefault())
+    val single = cue.providers.singleOrNull()
+    val label: String
+    val desc: String
+    if (single != null) {
+        val name = TodayWidgetState.cueName(single.name)
+        label = context.getString(R.string.today_prev_bills_one, name, month)
+        desc = context.getString(R.string.widget_prev_bills_cd_one, name, month)
+    } else {
+        label = context.getString(R.string.today_prev_bills_many, cue.providers.size, month)
+        desc = context.getString(R.string.widget_prev_bills_cd_many, cue.providers.size, month)
+    }
+    Text(
+        label,
+        maxLines = if (compact) 2 else 1,
+        style = TextStyle(color = WidgetColors.saffronText, fontSize = 12.sp, fontWeight = FontWeight.Bold),
+        modifier = GlanceModifier.fillMaxWidth().semantics { contentDescription = desc },
+    )
 }
 
 @Composable
@@ -156,13 +197,13 @@ private fun EmptyContent() {
 }
 
 @Composable
-private fun WideContent(state: TodayState) {
+private fun WideContent(state: TodayState, fontScale: Float) {
     val context = LocalContext.current
     val available = LocalSize.current.height.value - HEADER_HEIGHT.value - WIDGET_PADDING.value * 2
     val shown = TodayWidgetState.visibleRows(state.rows.size, available)
     val hidden = state.rows.size - shown
     Column(GlanceModifier.fillMaxSize()) {
-        Box(GlanceModifier.fillMaxWidth().height(HEADER_HEIGHT)) { Header(state, compact = false) }
+        Box(GlanceModifier.fillMaxWidth().height(HEADER_HEIGHT)) { Header(state, compact = false, fontScale = fontScale) }
         state.rows.take(shown).forEach { WidgetRow(it, state.epochDay) }
         if (hidden > 0) {
             Box(

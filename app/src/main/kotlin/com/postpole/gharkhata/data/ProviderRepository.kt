@@ -33,6 +33,7 @@ class ProviderRepository @Inject constructor(
 
     fun observeSettlements(providerId: Long): Flow<List<MonthSettlementEntity>> =
         settlements.observeFor(providerId)
+    fun observeAllSettlements(): Flow<List<MonthSettlementEntity>> = settlements.observeAll()
     suspend fun getSettlement(providerId: Long, yyyymm: Int): MonthSettlementEntity? =
         settlements.get(providerId, yyyymm)
     suspend fun saveSettlement(s: MonthSettlementEntity) = settlements.upsert(s)

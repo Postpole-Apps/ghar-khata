@@ -313,6 +313,8 @@
     <string name="today_prev_bills_many">%2$s के %1$d बिल तैयार हैं</string>
     <string name="today_prev_bills_cd_one">%2$s के लिए %1$s का मासिक खाता खोलें</string>
     <string name="today_prev_bills_cd_many">प्रोवाइडर सूची खोलें, %2$s के %1$d बिल देखने के लिए</string>
+    <string name="widget_prev_bills_cd_one">आज खुलता है। %1$s का %2$s बिल तैयार है।</string>
+    <string name="widget_prev_bills_cd_many">आज खुलता है। %2$s के %1$d बिल तैयार हैं।</string>
 
     <!-- Bill image / PDF -->
     <string name="bill_share_image">इमेज</string>
