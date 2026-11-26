@@ -18,11 +18,15 @@ import java.time.LocalDate
 object TodayWidgetUpdater {
     private val day = MutableStateFlow(LocalDate.now().toEpochDay())
 
-    /** Emits whenever today's marks or the active providers change (and when the day rolls over). */
+    /** Emits whenever today's marks, the active providers or any settlement change (and when the day rolls over). */
     @OptIn(ExperimentalCoroutinesApi::class)
     fun changes(repository: ProviderRepository): Flow<Unit> =
         day.flatMapLatest { d ->
-            combine(repository.observeActive(), repository.observeMarksForDay(d)) { p, m -> p to m }
+            combine(
+                repository.observeActive(),
+                repository.observeMarksForDay(d),
+                repository.observeAllSettlements(),
+            ) { p, m, s -> Triple(p, m, s) }
         }.distinctUntilChanged().drop(1).map { }
 
     /** Re-reads the current date and redraws every placed widget. */

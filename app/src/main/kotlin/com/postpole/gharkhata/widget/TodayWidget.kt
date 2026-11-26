@@ -42,6 +42,8 @@ import com.postpole.gharkhata.MainActivity
 import com.postpole.gharkhata.R
 import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.data.DayStatus
+import com.postpole.gharkhata.domain.PrevBillsCue
+import com.postpole.gharkhata.ui.month.BillTextFormatter
 import com.postpole.gharkhata.ui.theme.DarkColors
 import com.postpole.gharkhata.ui.theme.DarkGharColors
 import com.postpole.gharkhata.ui.theme.LightColors
@@ -82,7 +84,10 @@ class TodayWidget : GlanceAppWidget() {
         val today = LocalDate.now().toEpochDay()
         val providers = repository.observeActive().first()
         val marks = repository.observeMarksForDay(today).first()
-        val state = TodayWidgetState.build(providers, marks, today)
+        val state = TodayWidgetState.withPrevBills(
+            TodayWidgetState.build(providers, marks, today),
+            TodayWidgetState.loadPrevBills(repository, today),
+        )
         provideContent { TodayWidgetContent(state) }
     }
 }
@@ -111,6 +116,7 @@ private fun Header(state: TodayState, compact: Boolean) {
     val date = LocalDate.ofEpochDay(state.epochDay)
         .format(DateTimeFormatter.ofPattern("EEE, d MMM", Locale.getDefault()))
     val changes = context.resources.getQuantityString(R.plurals.today_changes, state.changes, state.changes)
+    val cue = state.prevBills?.takeIf { it.providers.isNotEmpty() }
     Column(GlanceModifier.fillMaxWidth()) {
         Text(
             date,
@@ -127,11 +133,37 @@ private fun Header(state: TodayState, compact: Boolean) {
                 modifier = GlanceModifier.padding(start = 6.dp, bottom = 3.dp),
             )
         }
-        Text(
-            changes,
-            style = TextStyle(color = WidgetColors.onBackground, fontSize = 12.sp, fontWeight = FontWeight.Medium),
-        )
+        if (cue != null) {
+            PrevBillsLine(context, cue)
+        } else {
+            Text(
+                changes,
+                style = TextStyle(color = WidgetColors.onBackground, fontSize = 12.sp, fontWeight = FontWeight.Medium),
+            )
+        }
     }
+}
+
+/** Saffron bills-ready line that replaces the changes line. Tapping it (like the rest of the widget) opens Today. */
+@Composable
+private fun PrevBillsLine(context: Context, cue: PrevBillsCue) {
+    val month = BillTextFormatter.monthShort(cue.previousMonth, Locale.getDefault())
+    val single = cue.providers.singleOrNull()
+    val label: String
+    val desc: String
+    if (single != null) {
+        label = context.getString(R.string.today_prev_bills_one, single.name, month)
+        desc = context.getString(R.string.widget_prev_bills_cd_one, single.name, month)
+    } else {
+        label = context.getString(R.string.today_prev_bills_many, cue.providers.size, month)
+        desc = context.getString(R.string.widget_prev_bills_cd_many, cue.providers.size, month)
+    }
+    Text(
+        label,
+        maxLines = 2,
+        style = TextStyle(color = WidgetColors.half, fontSize = 12.sp, fontWeight = FontWeight.Bold),
+        modifier = GlanceModifier.fillMaxWidth().semantics { contentDescription = desc },
+    )
 }
 
 @Composable

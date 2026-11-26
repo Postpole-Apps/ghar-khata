@@ -3,9 +3,15 @@ package com.postpole.gharkhata.widget
 import com.postpole.gharkhata.data.DayMarkEntity
 import com.postpole.gharkhata.data.DayStatus
 import com.postpole.gharkhata.data.ProviderEntity
+import com.postpole.gharkhata.data.ProviderRepository
+import com.postpole.gharkhata.domain.PrevBillsCue
+import com.postpole.gharkhata.domain.PreviousMonthBills
+import com.postpole.gharkhata.domain.ProviderBillInput
 import com.postpole.gharkhata.ui.today.TodayRow
 import com.postpole.gharkhata.ui.today.TodayState
 import com.postpole.gharkhata.ui.today.TodayViewModel
+import kotlinx.coroutines.flow.first
+import java.time.LocalDate
 
 /** What a chip tap does to storage. */
 sealed interface ChipWrite {
@@ -31,6 +37,22 @@ object TodayWidgetState {
             rows = rows,
             activeCount = providers.size,
         )
+    }
+
+    /** Attaches the previous-month cue (from [loadPrevBills]) without touching rows or counts. */
+    fun withPrevBills(state: TodayState, prevBills: PrevBillsCue?): TodayState = state.copy(prevBills = prevBills)
+
+    /** Same inputs as Today: active providers with rates, each one's marks from its start date, and settlements. */
+    suspend fun loadPrevBills(repository: ProviderRepository, today: Long): PrevBillsCue? {
+        if (LocalDate.ofEpochDay(today).dayOfMonth !in PreviousMonthBills.WINDOW_DAYS) return null
+        val inputs = repository.observeActiveWithRates().first().map { pr ->
+            ProviderBillInput(
+                pr,
+                repository.observeMarks(pr.provider.id, pr.provider.startEpochDay, today).first(),
+                repository.observeSettlements(pr.provider.id).first(),
+            )
+        }
+        return PreviousMonthBills.compute(today, inputs)
     }
 
     /** Chip tap: same cycle as Today. Returning to the scheduled default clears the mark; unscheduled present is EXTRA. */

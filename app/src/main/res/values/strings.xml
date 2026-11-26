@@ -312,6 +312,8 @@
     <string name="today_prev_bills_many">%1$d bills from %2$s are ready</string>
     <string name="today_prev_bills_cd_one">Open %1$s monthly register for %2$s</string>
     <string name="today_prev_bills_cd_many">Open Providers to see %1$d bills from %2$s</string>
+    <string name="widget_prev_bills_cd_one">Opens Today. %1$s\'s %2$s bill is ready.</string>
+    <string name="widget_prev_bills_cd_many">Opens Today. %1$d bills from %2$s are ready.</string>
 
     <!-- Bill image / PDF -->
     <string name="bill_share_image">Image</string>

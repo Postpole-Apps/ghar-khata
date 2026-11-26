@@ -4,7 +4,11 @@ import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.data.DayMarkEntity
 import com.postpole.gharkhata.data.DayStatus
 import com.postpole.gharkhata.data.ProviderEntity
+import com.postpole.gharkhata.data.MonthSettlementEntity
 import com.postpole.gharkhata.data.ProviderType
+import com.postpole.gharkhata.data.RateChangeEntity
+import com.postpole.gharkhata.ui.provider.TestDb
+import kotlinx.coroutines.runBlocking
 import com.postpole.gharkhata.ui.today.TodayRow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -160,5 +164,76 @@ class TodayWidgetStateTest {
         // 150dp fits 3 rows; 5 rows do not fit, so 2 rows + the "more in the app" line.
         assertEquals(2, TodayWidgetState.visibleRows(5, 150f))
         assertEquals(0, TodayWidgetState.visibleRows(5, 40f))
+    }
+
+    // --- Previous-month bills-ready cue ---
+
+    private fun day(y: Int, m: Int, d: Int) = LocalDate.of(y, m, d).toEpochDay()
+
+    private fun monthlyProvider(db: TestDb, name: String): Long = runBlocking {
+        val start = day(2026, 10, 1)
+        val id = db.repository.saveProvider(
+            ProviderEntity(
+                name = name, type = ProviderType.MAID, billingMode = BillingMode.MONTHLY_FIXED, unitLabel = "day",
+                scheduleMask = 0b1111111, startEpochDay = start, createdAt = 0,
+            ),
+        )
+        db.repository.addRate(RateChangeEntity(providerId = id, effectiveFromEpochDay = start, amountPaise = 300_000))
+        id
+    }
+
+    private fun settle(db: TestDb, id: Long, ym: Int, paid: Long) = runBlocking {
+        db.repository.saveSettlement(MonthSettlementEntity(id, ym, 300_000, paid, paidOnEpochDay = 0))
+    }
+
+    private fun cue(db: TestDb, today: Long) = runBlocking { TodayWidgetState.loadPrevBills(db.repository, today) }
+
+    @Test
+    fun cueIsOnlyLoadedOnDaysOneToFive() {
+        val db = TestDb()
+        monthlyProvider(db, "Sunita")
+        assertEquals(202611, cue(db, day(2026, 12, 1))!!.previousYearMonth)
+        assertEquals(202611, cue(db, day(2026, 12, 5))!!.previousYearMonth)
+        assertNull(cue(db, day(2026, 12, 6)))
+        assertNull(cue(db, day(2026, 11, 30)))
+    }
+
+    @Test
+    fun oneOrManyDueProvidersAreListedWithoutAmounts() {
+        val db = TestDb()
+        val a = monthlyProvider(db, "Sunita")
+        assertEquals(listOf("Sunita"), cue(db, day(2026, 12, 3))!!.providers.map { it.name })
+        monthlyProvider(db, "Raju")
+        assertEquals(2, cue(db, day(2026, 12, 3))!!.providers.size)
+        settle(db, a, 202610, 300_000)
+        settle(db, a, 202611, 300_000)
+        assertEquals(listOf("Raju"), cue(db, day(2026, 12, 3))!!.providers.map { it.name })
+    }
+
+    @Test
+    fun creditAndSettledProvidersGiveNoCue() {
+        val db = TestDb()
+        val a = monthlyProvider(db, "Sunita")
+        settle(db, a, 202610, 300_000)
+        settle(db, a, 202611, 500_000)
+        assertNull(cue(db, day(2026, 12, 3)))
+    }
+
+    @Test
+    fun withPrevBillsKeepsRowsCountsAndCycle() {
+        val maid = provider(1)
+        val base = TodayWidgetState.build(listOf(maid), listOf(mark(maid, saturday, DayStatus.ABSENT)), saturday)
+        val db = TestDb()
+        monthlyProvider(db, "Sunita")
+        val withCue = TodayWidgetState.withPrevBills(base, cue(db, day(2026, 12, 3)))
+        assertTrue(withCue.prevBills != null)
+        assertEquals(base.rows, withCue.rows)
+        assertEquals(base.changes, withCue.changes)
+        assertEquals(base.activeCount, withCue.activeCount)
+        assertNull(TodayWidgetState.withPrevBills(withCue, null).prevBills)
+        assertEquals(
+            TodayWidgetState.cycle(base.rows.single(), saturday, 5),
+            TodayWidgetState.cycle(withCue.rows.single(), saturday, 5),
+        )
     }
 }

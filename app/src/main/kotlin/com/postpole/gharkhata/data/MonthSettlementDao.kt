@@ -11,6 +11,10 @@ interface MonthSettlementDao {
     @Query("SELECT * FROM month_settlements WHERE providerId = :providerId ORDER BY yearMonth DESC")
     fun observeFor(providerId: Long): Flow<List<MonthSettlementEntity>>
 
+    /** Every settlement, for widget redraws (no per-provider fan-out). */
+    @Query("SELECT * FROM month_settlements ORDER BY providerId, yearMonth")
+    fun observeAll(): Flow<List<MonthSettlementEntity>>
+
     @Query("SELECT * FROM month_settlements WHERE providerId = :providerId AND yearMonth = :yyyymm")
     suspend fun get(providerId: Long, yyyymm: Int): MonthSettlementEntity?
 

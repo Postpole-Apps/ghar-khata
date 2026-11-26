@@ -98,6 +98,8 @@ class FakeSettlementDao : MonthSettlementDao {
     override fun observeFor(providerId: Long): Flow<List<MonthSettlementEntity>> =
         all.map { l -> l.filter { it.providerId == providerId }.sortedByDescending { it.yearMonth } }
 
+    override fun observeAll(): Flow<List<MonthSettlementEntity>> = all
+
     override suspend fun get(providerId: Long, yyyymm: Int): MonthSettlementEntity? =
         all.value.firstOrNull { it.providerId == providerId && it.yearMonth == yyyymm }
 
