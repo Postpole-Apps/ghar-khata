@@ -48,6 +48,18 @@ data class TodayRow(
     val canHalf: Boolean get() = provider.billingMode != BillingMode.PER_UNIT
 }
 
+/**
+ * The last change made on Today, kept so a snackbar can revert it. [previous] is the stored mark before the change
+ * (null = it followed the schedule); [newStatus] null means the change was a reset to usual.
+ */
+data class UndoableMark(
+    val providerId: Long,
+    val providerName: String,
+    val epochDay: Long,
+    val previous: DayMarkEntity?,
+    val newStatus: DayStatus?,
+)
+
 data class TodayState(
     val epochDay: Long,
     val todayEpochDay: Long,
@@ -71,15 +83,29 @@ data class TodayState(
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class TodayViewModel @Inject constructor(
+class TodayViewModel internal constructor(
     private val repository: ProviderRepository,
     proStatus: ProStatus,
     private val analytics: Analytics,
     private val settings: SettingsRepository,
+    private val clock: () -> Long,
 ) : ViewModel() {
+
+    @Inject
+    constructor(
+        repository: ProviderRepository,
+        proStatus: ProStatus,
+        analytics: Analytics,
+        settings: SettingsRepository,
+    ) : this(repository, proStatus, analytics, settings, System::currentTimeMillis)
 
     private val todayEpochDay: Long = LocalDate.now().toEpochDay()
     private val selected = MutableStateFlow(todayEpochDay)
+
+    private val _pendingUndo = MutableStateFlow<UndoableMark?>(null)
+
+    /** The most recent change on the selected day, or null. Drives the Undo snackbar. */
+    val pendingUndo: StateFlow<UndoableMark?> = _pendingUndo
 
     val state: StateFlow<TodayState> = combine(
         selected,
@@ -154,7 +180,29 @@ class TodayViewModel @Inject constructor(
 
     /** Moves to [epochDay]; future dates are ignored. */
     fun selectDate(epochDay: Long) {
-        if (epochDay <= todayEpochDay) selected.value = epochDay
+        if (epochDay <= todayEpochDay && epochDay != selected.value) {
+            _pendingUndo.value = null
+            selected.value = epochDay
+        }
+    }
+
+    /** Reverts the most recent change (restores the previous stored mark, or the schedule default). No-op if none. */
+    fun undoLast() {
+        val undo = _pendingUndo.value ?: return
+        _pendingUndo.value = null
+        viewModelScope.launch {
+            val previous = undo.previous
+            if (previous != null) repository.setMark(previous) else repository.clearMark(undo.providerId, undo.epochDay)
+            analytics.logEvent(
+                AnalyticsEvents.DAY_MARK_UNDONE,
+                mapOf(AnalyticsParams.STATUS to (previous?.status?.name ?: UNDO_DEFAULT)),
+            )
+        }
+    }
+
+    /** The snackbar timed out or was dismissed. */
+    fun clearUndo() {
+        _pendingUndo.value = null
     }
 
     /** Chip tap: Present → Absent → Half → Present (no Half for per-unit). */
@@ -162,27 +210,32 @@ class TodayViewModel @Inject constructor(
         val next = nextStatus(row.status, row.provider.billingMode)
         // An unscheduled day has no default to fall back on, so "present" there is an extra delivery.
         val stored = if (next == DayStatus.PRESENT && !row.scheduled) DayStatus.EXTRA else next
-        write(row.provider, row.scheduled, stored, row.mark?.qty, row.mark?.note)
+        write(row.provider, row.scheduled, stored, row.mark?.qty, row.mark?.note, row.mark)
     }
 
     /** Qty dialog save (per-unit). Delivered, so PRESENT on a scheduled day and EXTRA otherwise. */
     fun setQty(row: TodayRow, qty: Double, note: String?) {
         if (qty <= 0.0) return
         val status = if (row.scheduled) DayStatus.PRESENT else DayStatus.EXTRA
-        write(row.provider, row.scheduled, status, qty, note?.trim()?.ifEmpty { null })
+        write(row.provider, row.scheduled, status, qty, note?.trim()?.ifEmpty { null }, row.mark)
     }
 
     /** Reset: drops the mark so the day follows the schedule and default qty again. */
     fun reset(row: TodayRow) {
-        viewModelScope.launch { repository.clearMark(row.provider.id, selected.value) }
+        val day = selected.value
+        val previous = row.mark
+        viewModelScope.launch {
+            repository.clearMark(row.provider.id, day)
+            publishUndo(UndoableMark(row.provider.id, row.provider.name, day, previous, newStatus = null))
+        }
     }
 
     /** Adds an EXTRA delivery (default qty) for a provider that isn't scheduled on the selected day. */
     fun addExtra(provider: ProviderEntity) {
-        write(provider, scheduled = false, DayStatus.EXTRA, provider.defaultQty, null)
+        write(provider, scheduled = false, DayStatus.EXTRA, provider.defaultQty, null, previous = null)
     }
 
-    private fun write(provider: ProviderEntity, scheduled: Boolean, status: DayStatus, qty: Double?, note: String?) {
+    private fun write(provider: ProviderEntity, scheduled: Boolean, status: DayStatus, qty: Double?, note: String?, previous: DayMarkEntity?) {
         val day = selected.value
         viewModelScope.launch {
             val isDefault = scheduled && status == DayStatus.PRESENT &&
@@ -197,15 +250,23 @@ class TodayViewModel @Inject constructor(
                         status = status,
                         qty = qty,
                         note = note,
-                        updatedAt = System.currentTimeMillis(),
+                        updatedAt = clock(),
                     ),
                 )
             }
+            publishUndo(UndoableMark(provider.id, provider.name, day, previous, status))
             analytics.logEvent(AnalyticsEvents.DAY_MARKED, mapOf(AnalyticsParams.STATUS to status.name))
         }
     }
 
+    /** Replaces any pending undo, unless the user has already moved to another date. */
+    private fun publishUndo(undo: UndoableMark) {
+        if (selected.value == undo.epochDay) _pendingUndo.value = undo
+    }
+
     companion object {
+        private const val UNDO_DEFAULT = "default"
+
         fun isScheduledOn(p: ProviderEntity, epochDay: Long): Boolean =
             epochDay >= p.startEpochDay && Schedule.isScheduled(p.scheduleMask, epochDay)
 
