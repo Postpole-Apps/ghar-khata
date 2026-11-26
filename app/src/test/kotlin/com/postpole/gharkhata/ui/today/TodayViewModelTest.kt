@@ -105,6 +105,20 @@ class TodayViewModelTest {
     }
 
     @Test
+    fun rowsFollowSavedSortOrder() = runTest {
+        val a = add("A", BillingMode.PER_UNIT, Schedule.ALL_DAYS)
+        val b = add("B", BillingMode.PER_UNIT, Schedule.ALL_DAYS)
+        val c = add("C", BillingMode.PER_UNIT, Schedule.ALL_DAYS)
+        val vm = vm()
+        vm.selectDate(monday.toEpochDay())
+        assertEquals(listOf(a.id, b.id, c.id), vm.state.value.rows.map { it.provider.id })
+
+        db.repository.reorder(listOf(c.id, a.id, b.id))
+
+        assertEquals(listOf(c.id, a.id, b.id), vm.state.value.rows.map { it.provider.id })
+    }
+
+    @Test
     fun futureDatesAreIgnored() = runTest {
         val vm = vm()
         val today = vm.state.value.epochDay

@@ -46,6 +46,33 @@ class ProviderEditViewModelTest {
         return v.save()
     }
 
+    @Test
+    fun newProvider_getsNextSortOrder() = runTest {
+        val pro = FakeProStatus(true)
+        listOf("A", "B", "C").forEach { addActive(pro, it) }
+        db.providers.reorder(db.providers.all.value.sortedBy { it.name }.map { it.id })
+        assertEquals(listOf(0, 1, 2), db.providers.all.value.sortedBy { it.name }.map { it.sortOrder })
+
+        addActive(pro, "D")
+
+        assertEquals(3, db.providers.all.value.first { it.name == "D" }.sortOrder)
+    }
+
+    @Test
+    fun editProvider_keepsSortOrder() = runTest {
+        val pro = FakeProStatus(true)
+        addActive(pro, "A")
+        addActive(pro, "B")
+        val b = db.providers.all.value.first { it.name == "B" }
+        assertEquals(1, b.sortOrder)
+
+        val v = vm(id = b.id)
+        v.update { it.copy(name = "B2") }
+        v.save()
+
+        assertEquals(1, db.providers.getById(b.id)!!.sortOrder)
+    }
+
     // ---- presets ----
 
     @Test

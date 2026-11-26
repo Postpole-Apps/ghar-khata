@@ -2,6 +2,9 @@ package com.postpole.gharkhata.ui.provider
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.postpole.gharkhata.analytics.Analytics
+import com.postpole.gharkhata.analytics.AnalyticsEvents
+import com.postpole.gharkhata.analytics.NoOpAnalytics
 import com.postpole.gharkhata.data.DayMarkEntity
 import com.postpole.gharkhata.data.DayStatus
 import com.postpole.gharkhata.data.MonthSettlementEntity
@@ -68,7 +71,21 @@ class ProviderListViewModel @Inject constructor(
     private val repository: ProviderRepository,
     proStatus: ProStatus,
     private val prompts: ProPrompts = NoProPrompts,
+    private val analytics: Analytics = NoOpAnalytics,
 ) : ViewModel() {
+
+    /**
+     * Persists [idsInOrder] (active providers, top to bottom) as sortOrder 0..n-1. Does nothing, and logs
+     * nothing, when it matches the order currently shown.
+     */
+    fun saveOrder(idsInOrder: List<Long>) {
+        val current = state.value.active.map { it.provider.id }
+        if (idsInOrder == current) return
+        viewModelScope.launch {
+            repository.reorder(idsInOrder)
+            analytics.logEvent(AnalyticsEvents.PROVIDERS_REORDERED)
+        }
+    }
 
     private fun activeRows(today: Long): Flow<List<ProviderRow>> {
         val date = LocalDate.ofEpochDay(today)

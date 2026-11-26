@@ -188,6 +188,14 @@
     <string name="providers_more">More options</string>
     <string name="providers_show_archived">Show archived</string>
     <string name="providers_hide_archived">Hide archived</string>
+    <string name="providers_reorder">Reorder providers</string>
+    <string name="providers_reorder_title">Order on Today and Providers</string>
+    <!-- %1$s = provider name. -->
+    <string name="providers_reorder_up_cd">Move %1$s up</string>
+    <string name="providers_reorder_down_cd">Move %1$s down</string>
+    <!-- %1$s = provider name, %2$d = new position, %3$d = total. -->
+    <string name="providers_reorder_moved">%1$s, position %2$d of %3$d</string>
+    <string name="providers_reorder_save">Save order</string>
 
     <!-- Provider Month -->
     <string name="month_back">Back</string>

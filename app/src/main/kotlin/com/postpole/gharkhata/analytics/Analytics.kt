@@ -13,7 +13,9 @@ object AnalyticsEvents {
     const val BACKUP_IMPORTED = "backup_imported"
     const val PROVIDER_ADDED = "provider_added"
     const val PROVIDER_LIMIT_REACHED = "provider_limit_reached"
-    const val DAY_MARKED = "day_marked"
+    /** No params. Fires on Save only, and only when the order actually changed. */
+    const val PROVIDERS_REORDERED = "providers_reordered"
+    const val DAY_MARKED ="day_marked"
     const val DAY_MARK_UNDONE = "day_mark_undone"
     const val BILL_SHARED = "bill_shared"
     const val SETTLEMENT_SAVED = "settlement_saved"

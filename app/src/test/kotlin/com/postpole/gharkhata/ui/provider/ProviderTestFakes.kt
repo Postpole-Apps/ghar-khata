@@ -20,8 +20,10 @@ class FakeProviderDao(private val rates: FakeRateDao) : ProviderDao {
     val all = MutableStateFlow<List<ProviderEntity>>(emptyList())
     private var nextId = 1L
 
-    override fun observeActive(): Flow<List<ProviderEntity>> = all.map { l -> l.filter { !it.archived } }
-    override fun observeAll(): Flow<List<ProviderEntity>> = all
+    private val byOrder = compareBy<ProviderEntity>({ it.sortOrder }, { it.name })
+
+    override fun observeActive(): Flow<List<ProviderEntity>> = all.map { l -> l.filter { !it.archived }.sortedWith(byOrder) }
+    override fun observeAll(): Flow<List<ProviderEntity>> = all.map { it.sortedWith(byOrder) }
     override suspend fun getById(id: Long): ProviderEntity? = all.value.firstOrNull { it.id == id }
     override fun countActive(): Flow<Int> = all.map { l -> l.count { !it.archived } }
     override fun observeActiveWithRates(): Flow<List<ProviderWithRates>> =
@@ -39,6 +41,12 @@ class FakeProviderDao(private val rates: FakeRateDao) : ProviderDao {
     override suspend fun setArchived(id: Long, archived: Boolean) {
         all.value = all.value.map { if (it.id == id) it.copy(archived = archived) else it }
     }
+
+    override suspend fun setSortOrder(id: Long, order: Int) {
+        all.value = all.value.map { if (it.id == id) it.copy(sortOrder = order) else it }
+    }
+
+    override suspend fun maxSortOrder(): Int = all.value.maxOfOrNull { it.sortOrder } ?: -1
 
     override suspend fun delete(provider: ProviderEntity) {
         all.value = all.value.filter { it.id != provider.id }

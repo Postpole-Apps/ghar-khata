@@ -34,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,6 +93,7 @@ fun ProviderListScreen(
         onAddProvider = { if (state.canAdd) onAddProvider() else showPro = ProReason.PROVIDER_LIMIT },
         onSeePro = { showPro = if (state.canAdd) ProReason.GENERAL else ProReason.PROVIDER_LIMIT },
         onOpenSettings = onOpenSettings,
+        onSaveOrder = viewModel::saveOrder,
     )
     showPro?.let { ProSheet(onDismiss = { showPro = null }, reason = it) }
     if (showCardPro) {
@@ -117,10 +119,19 @@ internal fun ProviderListContent(
     proCard: ProCardUi? = null,
     showArchivedInitially: Boolean = true,
     today: LocalDate = LocalDate.now(),
+    onSaveOrder: (List<Long>) -> Unit = {},
 ) {
     val gk = MaterialTheme.gharColors
     var showArchived by remember { mutableStateOf(showArchivedInitially) }
     var menu by remember { mutableStateOf(false) }
+    var showReorder by rememberSaveable { mutableStateOf(false) }
+    if (showReorder && state.active.size >= 2) {
+        ReorderProvidersSheet(
+            providers = state.active.map { it.provider },
+            onSave = { showReorder = false; onSaveOrder(it) },
+            onDismiss = { showReorder = false },
+        )
+    }
 
     Column(
         Modifier.fillMaxSize()
@@ -142,6 +153,11 @@ internal fun ProviderListContent(
                     Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.providers_more), tint = gk.onHero)
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.providers_reorder)) },
+                        enabled = state.active.size >= 2,
+                        onClick = { menu = false; showReorder = true },
+                    )
                     DropdownMenuItem(
                         text = {
                             Text(stringResource(if (showArchived) R.string.providers_hide_archived else R.string.providers_show_archived))
