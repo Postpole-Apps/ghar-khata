@@ -41,6 +41,7 @@ class ProViewModel @Inject constructor(
      */
     fun onShown(reason: ProReason, attribution: ProPromptTrigger? = reason.autoTrigger) {
         analytics.logEvent(AnalyticsEvents.PRO_SCREEN_VIEW, attributionParams(attribution))
+        prompts.onPaywallShown()
         viewModelScope.launch {
             if (reason.isHardGate) prompts.recordHardGate()
             reason.autoTrigger?.let { prompts.onShown(it) }

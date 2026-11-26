@@ -31,6 +31,21 @@ interface ProPrompts {
     /** An auto prompt was shown (or reserved) this session: no other one may show, and no interstitial. */
     val autoPromptShownThisSession: Boolean
 
+    /** An interstitial went on screen this session. */
+    val interstitialShownThisSession: Boolean
+
+    /** A Pro paywall (any ProSheet, or the Remove ads offer) was on screen this session. */
+    val paywallShownThisSession: Boolean
+
+    /** App process starts so far, 1 = the first ever session. */
+    suspend fun sessionCount(): Int
+
+    /** A Pro paywall (any ProSheet, or the Remove ads offer) was shown. */
+    fun onPaywallShown()
+
+    /** The Play review flow was requested: no auto Pro prompt or interstitial for the rest of the session. */
+    fun onReviewRequested()
+
     /** A bill share or a saved settlement. */
     suspend fun recordBillMilestone()
 
@@ -58,6 +73,11 @@ interface ProPrompts {
 object NoProPrompts : ProPrompts {
     override val price: StateFlow<String?> = MutableStateFlow(null)
     override val autoPromptShownThisSession = false
+    override val interstitialShownThisSession = false
+    override val paywallShownThisSession = false
+    override suspend fun sessionCount() = 0
+    override fun onPaywallShown() = Unit
+    override fun onReviewRequested() = Unit
     override suspend fun recordBillMilestone() = Unit
     override suspend fun recordHardGate() = Unit
     override suspend fun reserve(trigger: ProPromptTrigger, screen: ProPromptScreen, freeLimitCardShowing: Boolean) = false
@@ -103,7 +123,25 @@ class ProPromptController(
     @Volatile override var autoPromptShownThisSession = false
         private set
 
-    @Volatile private var interstitialShownThisSession = false
+    @Volatile override var interstitialShownThisSession = false
+        private set
+
+    @Volatile override var paywallShownThisSession = false
+        private set
+
+    override suspend fun sessionCount(): Int = lock.withLock {
+        countSession()
+        dataStore.data.first()[SESSIONS] ?: 0
+    }
+
+    override fun onPaywallShown() {
+        paywallShownThisSession = true
+    }
+
+    override fun onReviewRequested() {
+        // Takes the session's one auto-prompt slot, which also keeps the interstitial away.
+        autoPromptShownThisSession = true
+    }
 
     /** Call once from Application.onCreate (also done lazily by the first evaluation). */
     suspend fun startSession() = lock.withLock {
