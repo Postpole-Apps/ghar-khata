@@ -149,6 +149,7 @@ fun ProviderMonthScreen(
             initialNote = state.settlement?.note,
             onDismiss = { showPaid = false },
             onSave = { paid, on, note -> if (viewModel.markPaid(paid, on, note, offerPro = true)) showPaid = false },
+            onClear = if (state.settlement != null) ({ viewModel.clearPayment(); showPaid = false }) else null,
         )
     }
 }

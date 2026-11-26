@@ -401,4 +401,9 @@
     <string name="today_backup_nudge_dismiss">अभी नहीं</string>
     <string name="settings_backup_last">पिछली बैकअप · %1$s</string>
     <string name="settings_backup_never">अभी तक बैकअप नहीं हुआ</string>
+    <!-- Clear payment. Hindi. Good-faith translation: needs native review. -->
+    <string name="month_clear_payment">पेमेंट हटाएँ</string>
+    <string name="month_clear_payment_title">यह पेमेंट हटाएँ?</string>
+    <string name="month_clear_payment_message">%2$s में %1$s का पेमेंट रिकॉर्ड हट जाएगा। राशि बाकी रहेगी। यह केवल आपके लिए एक रिकॉर्ड है। ऐप से कोई पैसे नहीं जाते।</string>
+    <string name="month_clear_payment_confirm">हटाएँ</string>
 </resources>

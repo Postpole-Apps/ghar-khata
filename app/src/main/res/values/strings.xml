@@ -399,4 +399,8 @@
     <string name="today_backup_nudge_dismiss">Not now</string>
     <string name="settings_backup_last">Last backup · %1$s</string>
     <string name="settings_backup_never">Not backed up yet</string>
+    <string name="month_clear_payment">Clear payment</string>
+    <string name="month_clear_payment_title">Clear this payment?</string>
+    <string name="month_clear_payment_message">This removes the payment record for %1$s in %2$s. The amount stays due. This is only a record for you. No money moves through the app.</string>
+    <string name="month_clear_payment_confirm">Clear</string>
 </resources>

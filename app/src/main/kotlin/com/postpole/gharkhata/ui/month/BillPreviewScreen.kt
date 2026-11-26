@@ -58,6 +58,8 @@ import com.postpole.gharkhata.ui.pro.rememberIsPro
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -147,6 +149,7 @@ fun BillPreviewScreen(
             initialNote = state.settlement?.note,
             onDismiss = { showPaid = false },
             onSave = { paid, on, note -> if (viewModel.markPaid(paid, on, note)) showPaid = false },
+            onClear = if (state.settlement != null) ({ viewModel.clearPayment(); showPaid = false }) else null,
         )
     }
 }
@@ -427,6 +430,8 @@ internal fun MarkPaidDialog(
     initialNote: String?,
     onDismiss: () -> Unit,
     onSave: (paidPaise: Long, paidOnEpochDay: Long, note: String?) -> Unit,
+    /** Non-null only when updating an existing payment: shows Clear payment (after a confirm). */
+    onClear: (() -> Unit)? = null,
     /** Draw the dialog card in place instead of in a window (the screenshot tests can't capture windows). */
     inline: Boolean = false,
 ) {
@@ -436,6 +441,7 @@ internal fun MarkPaidDialog(
     var paidOn by remember { mutableLongStateOf(initialPaidOn) }
     var note by remember { mutableStateOf(initialNote.orEmpty()) }
     var showPicker by remember { mutableStateOf(false) }
+    var showClearConfirm by remember { mutableStateOf(false) }
     val paise = Money.parse(amount)?.takeIf { it >= 0 }
     val diff = if (paise == null) 0L else duePaise - paise
     val nextMonth = BillTextFormatter.monthName(yearMonth.plusMonths(1), locale)
@@ -489,6 +495,14 @@ internal fun MarkPaidDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (onClear != null) {
+                    val clearLabel = stringResource(R.string.month_clear_payment)
+                    TextButton(
+                        onClick = { showClearConfirm = true },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = clearLabel },
+                    ) { Text(clearLabel) }
+                }
             }
         
     }
@@ -504,7 +518,7 @@ internal fun MarkPaidDialog(
             Text(stringResource(R.string.provider_save), style = MaterialTheme.typography.labelLarge)
         }
     }
-    val dismiss: @Composable () -> Unit = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+    val dismiss: @Composable () -> Unit = { TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.cancel)) } }
     if (inline) {
         Column(
             Modifier.fillMaxWidth().padding(24.dp).clip(GharShapesExtra.ExtraLargeIncreased)
@@ -523,6 +537,36 @@ internal fun MarkPaidDialog(
             text = body,
             confirmButton = confirm,
             dismissButton = dismiss,
+        )
+    }
+
+    if (showClearConfirm && onClear != null) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            shape = GharShapesExtra.ExtraLargeIncreased,
+            title = { Text(stringResource(R.string.month_clear_payment_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.month_clear_payment_message,
+                        providerName,
+                        BillTextFormatter.monthName(yearMonth, locale),
+                    ),
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showClearConfirm = false; onClear() },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text(stringResource(R.string.month_clear_payment_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirm = false }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
         )
     }
 

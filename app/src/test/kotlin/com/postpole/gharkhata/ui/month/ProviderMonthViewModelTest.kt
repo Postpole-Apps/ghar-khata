@@ -120,6 +120,61 @@ class ProviderMonthViewModelTest {
         assertEquals(0L, vm(p, 202612).state.value.bill!!.previousBalancePaise)
     }
 
+    @Test fun clearPayment_deletesRow_andRestoresDueAndNextMonthBalance() = runTest {
+        val p = milk()
+        val oct = vm(p, 202610)
+        oct.markPaid(100_000, day(11, 2), null)
+        val nov = vm(p, 202611)
+        assertEquals(55_000L, nov.state.value.bill!!.previousBalancePaise)
+        oct.clearPayment()
+        assertTrue(db.settlements.all.value.isEmpty())
+        assertNull(oct.state.value.settlement)
+        assertEquals(155_000L, oct.state.value.bill!!.duePaise)
+        assertEquals(155_000L, nov.state.value.bill!!.previousBalancePaise)
+    }
+
+    @Test fun clearPayment_onlyRemovesVisibleMonth() = runTest {
+        val p = milk()
+        val oct = vm(p, 202610)
+        oct.markPaid(155_000, day(11, 2), null)
+        val nov = vm(p, 202611)
+        nov.markPaid(150_000, day(12, 1), null)
+        nov.clearPayment()
+        assertEquals(listOf(202610), db.settlements.all.value.map { it.yearMonth })
+    }
+
+    @Test fun clearPayment_withoutSettlement_isNoOp() = runTest {
+        val p = milk()
+        val oct = vm(p, 202610)
+        oct.clearPayment()
+        assertTrue(db.settlements.all.value.isEmpty())
+        assertEquals(155_000L, oct.state.value.bill!!.duePaise)
+    }
+
+    @Test fun clearPayment_doesNotOfferProOrLogSettlement() = runTest {
+        val p = milk()
+        var reserved = 0
+        val prompts = object : com.postpole.gharkhata.pro.ProPrompts by com.postpole.gharkhata.pro.NoProPrompts {
+            override suspend fun reserve(
+                trigger: com.postpole.gharkhata.pro.ProPromptTrigger,
+                screen: com.postpole.gharkhata.pro.ProPromptScreen,
+                freeLimitCardShowing: Boolean,
+            ): Boolean { reserved++; return true }
+        }
+        val ym: Int = 202610
+        val oct = ProviderMonthViewModel(
+            SavedStateHandle(mapOf("id" to p.id, "yyyymm" to ym)), db.repository, analytics, { today }, prompts,
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher()) { oct.state.collect { } }
+        oct.markPaid(100_000, day(11, 2), null)
+        val before = analytics.events.size
+        reserved = 0
+        oct.clearPayment()
+        assertEquals(0, reserved)
+        assertFalse(oct.autoProSheet.value)
+        assertEquals(before, analytics.events.size)
+    }
+
     @Test fun negativeAmountIsRejected() = runTest {
         val p = milk()
         assertFalse(vm(p, 202610).markPaid(-1, day(11, 2), null))
