@@ -236,4 +236,41 @@ class TodayWidgetStateTest {
             TodayWidgetState.cycle(withCue.rows.single(), saturday, 5),
         )
     }
+
+    @Test
+    fun cueName_shortNameUnchanged() {
+        assertEquals("Sunita", TodayWidgetState.cueName("Sunita"))
+    }
+
+    @Test
+    fun cueName_exactlyAtLimitUnchanged() {
+        val name = "A".repeat(12)
+        assertEquals(12, name.length)
+        assertEquals(name, TodayWidgetState.cueName(name))
+    }
+
+    @Test
+    fun cueName_longNameIsCappedWithEllipsis() {
+        val name = "Mahalakshmi Dairy"
+        val capped = TodayWidgetState.cueName(name)
+        assertEquals(name.take(11) + "…", capped)
+        assertEquals(12, capped.length)
+    }
+
+    @Test
+    fun cueFirst_belowThresholdWithCueIsFalse() {
+        assertFalse(TodayWidgetState.cueFirst(1.0f, true))
+        assertFalse(TodayWidgetState.cueFirst(1.29f, true))
+    }
+
+    @Test
+    fun cueFirst_atOrAboveThresholdWithCueIsTrue() {
+        assertTrue(TodayWidgetState.cueFirst(1.3f, true))
+        assertTrue(TodayWidgetState.cueFirst(2.0f, true))
+    }
+
+    @Test
+    fun cueFirst_noCueIsFalseEvenAtLargeScale() {
+        assertFalse(TodayWidgetState.cueFirst(2.0f, false))
+    }
 }
