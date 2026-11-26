@@ -17,6 +17,7 @@ object AnalyticsEvents {
     const val DAY_MARK_UNDONE = "day_mark_undone"
     const val BILL_SHARED = "bill_shared"
     const val SETTLEMENT_SAVED = "settlement_saved"
+    const val PROVIDER_CALL_TAPPED = "provider_call_tapped"
 
     // Automatic Pro prompts. Enum-only params: trigger, surface, method.
     const val PRO_PROMPT_SHOWN = "pro_prompt_shown"

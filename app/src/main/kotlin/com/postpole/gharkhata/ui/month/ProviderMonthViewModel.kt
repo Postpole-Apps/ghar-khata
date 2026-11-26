@@ -242,6 +242,14 @@ class ProviderMonthViewModel internal constructor(
         viewModelScope.launch { repository.deleteSettlement(providerId, ym) }
     }
 
+    /** Logs the tap (type only, never the number or name) before the screen opens the dialer. */
+    fun onCallTapped() {
+        val type = state.value.provider?.type ?: return
+        analytics.logEvent(AnalyticsEvents.PROVIDER_CALL_TAPPED, mapOf(AnalyticsParams.PROVIDER_TYPE to type.name))
+    }
+
+    fun onDialFailed(e: Exception) = analytics.recordNonFatal(e)
+
     fun onShared(channel: String) {
         analytics.logEvent(AnalyticsEvents.BILL_SHARED, mapOf(AnalyticsParams.FORMAT to channel))
         viewModelScope.launch { prompts.recordBillMilestone() }

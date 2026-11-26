@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Receipt
@@ -48,6 +49,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -119,6 +121,8 @@ fun ProviderMonthScreen(
         onMarkPaid = { showPaid = true },
         onYearSummary = { if (isPro) onOpenYear(viewModel.providerId, state.yearMonth) else showPro = true },
         isPro = isPro,
+        onCallTapped = viewModel::onCallTapped,
+        onDialError = viewModel::onDialFailed,
     )
     if (showPro) ProSheet(onDismiss = { showPro = false }, reason = ProReason.YEAR_SUMMARY)
     // Never over DayMarkSheet / MarkPaidDialog: it opens only after they are gone.
@@ -167,6 +171,8 @@ internal fun ProviderMonthContent(
     onMarkPaid: () -> Unit,
     onYearSummary: () -> Unit = {},
     isPro: Boolean = true,
+    onCallTapped: () -> Unit = {},
+    onDialError: (Exception) -> Unit = {},
 ) {
     val gk = MaterialTheme.gharColors
     val provider = state.provider
@@ -174,7 +180,7 @@ internal fun ProviderMonthContent(
         Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(gk.hero, gk.heroVariant))).statusBarsPadding(),
     ) {
         if (provider == null) {
-            TopBar(null, null, onBack, onEdit, onYearSummary, isPro)
+            TopBar(null, null, onBack, onEdit, onYearSummary, isPro, onCallTapped, onDialError)
             if (state.loaded) {
                 Text(
                     stringResource(R.string.month_not_found),
@@ -185,7 +191,7 @@ internal fun ProviderMonthContent(
             return@Column
         }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            TopBar(provider, state.ratePaise, onBack, onEdit, onYearSummary, isPro)
+            TopBar(provider, state.ratePaise, onBack, onEdit, onYearSummary, isPro, onCallTapped, onDialError)
             Hero(state)
             Column(
                 Modifier.fillMaxWidth().heightIn(min = 560.dp).clip(GharShapesExtra.SheetTop)
@@ -219,7 +225,10 @@ private fun TopBar(
     onEdit: () -> Unit,
     onYearSummary: () -> Unit,
     isPro: Boolean,
+    onCallTapped: () -> Unit,
+    onDialError: (Exception) -> Unit,
 ) {
+    val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
     val gk = MaterialTheme.gharColors
     Row(
@@ -244,6 +253,15 @@ private fun TopBar(
             }
             IconButton(onClick = onEdit) {
                 Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.month_edit_provider), tint = gk.onHero)
+            }
+            val callUri = provider.phone?.let { dialUri(it) }
+            if (callUri != null) {
+                IconButton(onClick = {
+                    onCallTapped()
+                    launchDial(context, callUri, onDialError)
+                }) {
+                    Icon(Icons.Outlined.Call, contentDescription = stringResource(R.string.month_call_cd, provider.name), tint = gk.onHero)
+                }
             }
             Box {
                 IconButton(onClick = { menu = true }) {

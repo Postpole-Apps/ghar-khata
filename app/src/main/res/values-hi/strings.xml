@@ -193,6 +193,9 @@
     <!-- Provider Month -->
     <string name="month_back">वापस</string>
     <string name="month_edit_provider">सेवा बदलें</string>
+    <!-- NEEDS NATIVE REVIEW -->
+    <string name="month_call_cd">%1$s को कॉल करें</string>
+    <string name="month_call_no_app">इस फ़ोन पर कॉल करने वाला कोई ऐप नहीं है।</string>
     <string name="month_prev">पिछला महीना</string>
     <string name="month_next">अगला महीना</string>
     <string name="month_total_due_so_far">कुल बकाया · %1$s अब तक</string>

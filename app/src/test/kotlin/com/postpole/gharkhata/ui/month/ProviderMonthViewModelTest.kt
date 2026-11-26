@@ -265,4 +265,16 @@ class ProviderMonthViewModelTest {
         assertEquals(2.0, s.absences, 0.0)
         assertEquals(1.0, s.paidLeavesUsed, 0.0)
     }
+
+    @Test fun onCallTapped_logsProviderCallTapped_withProviderTypeOnly() = runTest {
+        val p = milk()
+        db.providers.upsert(p.copy(phone = "+91 98765-43210"))
+        val v = vm(db.providers.getById(p.id)!!, 202611)
+        v.onCallTapped()
+        val deadline = System.currentTimeMillis() + 2_000
+        while (AnalyticsEvents.PROVIDER_CALL_TAPPED !in analytics.events && System.currentTimeMillis() < deadline) Thread.sleep(10)
+        val logged = analytics.params.filter { it.first == AnalyticsEvents.PROVIDER_CALL_TAPPED }
+        assertEquals(1, logged.size)
+        assertEquals(mapOf<String, Any>("provider_type" to ProviderType.MILK.name), logged.single().second)
+    }
 }
