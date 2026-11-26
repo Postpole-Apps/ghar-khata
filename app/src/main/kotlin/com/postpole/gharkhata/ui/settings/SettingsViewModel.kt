@@ -46,6 +46,7 @@ class SettingsViewModel @Inject constructor(
     private val backup: BackupRepository,
     private val analytics: Analytics,
     private val reminders: com.postpole.gharkhata.reminder.ReminderController,
+    private val review: com.postpole.gharkhata.review.ReviewPrompter,
 ) : ViewModel() {
     val isPro: StateFlow<Boolean> = billing.isPro
     val hasRemoveAds: StateFlow<Boolean> = billing.hasRemoveAds
@@ -56,7 +57,10 @@ class SettingsViewModel @Inject constructor(
     private val paywallViewLogger = RemoveAdsPaywallViewLogger(analytics)
 
     /** Logged once per Settings visit when a purchasable Remove ads offer is on screen. */
-    fun onRemoveAdsOfferShown() = paywallViewLogger.onOfferShown()
+    fun onRemoveAdsOfferShown() {
+        review.onPaywallShown()
+        paywallViewLogger.onOfferShown()
+    }
 
     fun buyRemoveAds(activity: Activity) {
         analytics.logEvent(

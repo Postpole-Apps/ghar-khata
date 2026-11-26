@@ -19,12 +19,15 @@ import com.postpole.gharkhata.pro.NoProPrompts
 import com.postpole.gharkhata.pro.ProPromptScreen
 import com.postpole.gharkhata.pro.ProPromptTrigger
 import com.postpole.gharkhata.pro.ProPrompts
+import com.postpole.gharkhata.review.NoReviewPrompter
+import com.postpole.gharkhata.review.ReviewPrompter
 import com.postpole.gharkhata.ui.today.TodayViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -68,6 +71,10 @@ data class MonthState(
     /** Rate or salary in force today, for the header subtitle. Null before any rate exists. */
     val ratePaise: Long? = null,
 ) {
+    /** A month that has closed and has at least one marked day. */
+    fun isFullMonthSummary(currentMonth: Int): Boolean =
+        loaded && provider != null && yearMonth < currentMonth && cells.any { it.mark != null }
+
     val yearMonthValue: YearMonth get() = YearMonth.of(yearMonth / 100, yearMonth % 100)
 
     /** First and last billed day, or null when the month is entirely before the start / in the future. */
@@ -88,6 +95,7 @@ class ProviderMonthViewModel internal constructor(
     private val analytics: Analytics,
     private val todayProvider: () -> Long,
     private val prompts: ProPrompts = NoProPrompts,
+    private val review: ReviewPrompter = NoReviewPrompter,
 ) : ViewModel() {
 
     @Inject
@@ -96,7 +104,8 @@ class ProviderMonthViewModel internal constructor(
         repository: ProviderRepository,
         analytics: Analytics,
         prompts: ProPrompts,
-    ) : this(savedState, repository, analytics, { LocalDate.now().toEpochDay() }, prompts)
+        review: ReviewPrompter,
+    ) : this(savedState, repository, analytics, { LocalDate.now().toEpochDay() }, prompts, review)
 
     private val _autoProSheet = MutableStateFlow(false)
 
@@ -124,6 +133,14 @@ class ProviderMonthViewModel internal constructor(
         if (provider == null) return@combine MonthState(ym, todayEpochDay, loaded = true)
         build(provider, rates, marks, settlements, ym)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MonthState(selected.value, todayEpochDay))
+
+    init {
+        // The first closed month that has marked days, once viewed, makes a review request eligible later.
+        viewModelScope.launch {
+            state.first { it.isFullMonthSummary(currentMonth) }
+            review.onFirstMonthSummaryViewed()
+        }
+    }
 
     private fun build(
         provider: ProviderEntity,

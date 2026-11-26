@@ -60,6 +60,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.postpole.gharkhata.R
+import com.postpole.gharkhata.review.NoReviewPrompter
+import com.postpole.gharkhata.review.ReviewPrompter
+import com.postpole.gharkhata.review.launchInAppReview
 import com.postpole.gharkhata.ui.month.BillPreviewScreen
 import com.postpole.gharkhata.ui.month.ProviderMonthScreen
 import com.postpole.gharkhata.ui.month.YearSummaryScreen
@@ -122,8 +125,16 @@ internal fun isInterstitialDestination(route: String?): Boolean =
 /** Settle time after leaving Bill preview before the interstitial may show. */
 private const val INTERSTITIAL_SETTLE_MS = 1_500L
 
+/** Settle time on a main screen before the review request is considered (lets an auto Pro prompt claim first). */
+private const val REVIEW_SETTLE_MS = 2_500L
+
 @Composable
-fun AppNavHost(ads: AdsManager, prompts: ProPrompts, onScreen: (String) -> Unit = {}, goToToday: Int = 0) {
+fun AppNavHost(
+    ads: AdsManager,
+    prompts: ProPrompts,
+    review: ReviewPrompter = NoReviewPrompter,
+    onScreen: (String) -> Unit = {}, goToToday: Int = 0,
+) {
     val navController = rememberNavController()
     // Bumped each time Bill preview is left for Today / Providers / Month.
     var billExitTick by remember { mutableIntStateOf(0) }
@@ -170,7 +181,21 @@ fun AppNavHost(ads: AdsManager, prompts: ProPrompts, onScreen: (String) -> Unit 
             !monthOverlayOpen &&
             lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
         ) {
-            if (ads.showInterstitialIfAllowed(activity)) prompts.onInterstitialShown()
+            if (ads.showInterstitialIfAllowed(activity)) {
+                prompts.onInterstitialShown()
+                review.onInterstitialShown()
+            }
+        }
+    }
+
+    // Rest point: back on Today / Providers with nothing open, long enough after arriving. The policy decides;
+    // the Play flow is launched with no custom UI and whatever happens, the app carries on.
+    LaunchedEffect(route) {
+        if (activity == null || (route != Routes.TODAY && route != Routes.PROVIDERS)) return@LaunchedEffect
+        delay(REVIEW_SETTLE_MS)
+        if (!lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) return@LaunchedEffect
+        if (review.claimRequest(prompts.autoPromptShownThisSession)) {
+            launchInAppReview(activity)
         }
     }
 

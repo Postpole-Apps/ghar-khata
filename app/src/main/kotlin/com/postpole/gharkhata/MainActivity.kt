@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.postpole.gharkhata.ads.AdsManager
 import com.postpole.gharkhata.pro.ProPrompts
+import com.postpole.gharkhata.review.ReviewPrompter
 import com.postpole.gharkhata.analytics.Analytics
 import com.postpole.gharkhata.data.ThemeMode
 import com.postpole.gharkhata.ui.AppNavHost
@@ -35,6 +36,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var analytics: Analytics
     @Inject lateinit var ads: AdsManager
     @Inject lateinit var proPrompts: ProPrompts
+    @Inject lateinit var review: ReviewPrompter
 
     private lateinit var update: InAppUpdate
 
@@ -74,7 +76,7 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.DARK -> true
             }
             GharKhataTheme(darkTheme = dark, dynamicColor = theme.dynamicColor) {
-                AppNavHost(ads = ads, prompts = proPrompts, onScreen = viewModel::onScreen, goToToday = goToToday.intValue)
+                AppNavHost(ads = ads, prompts = proPrompts, review = review, onScreen = viewModel::onScreen, goToToday = goToToday.intValue)
                 if (updateReady && !dismissed) {
                     AlertDialog(
                         onDismissRequest = { dismissed = true },

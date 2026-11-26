@@ -22,6 +22,9 @@ object AnalyticsEvents {
     const val PRO_PROMPT_DISMISSED = "pro_prompt_dismissed"
     const val PRO_PROMPT_CTA_TAP = "pro_prompt_cta_tap"
 
+    // Play In-App Review. Enum-only param: trigger.
+    const val REVIEW_PROMPT_REQUESTED = "review_prompt_requested"
+
     // Remove ads (ads-era). Pro keeps its own events above; these never fire for Pro and vice versa.
     const val REMOVE_ADS_PAYWALL_VIEW = "remove_ads_paywall_view"
     const val REMOVE_ADS_PURCHASE_START = "remove_ads_purchase_start"
