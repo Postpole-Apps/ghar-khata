@@ -46,7 +46,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarData
+import androidx.compose.material3.SnackbarDefaults
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberDatePickerState
@@ -55,6 +63,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -116,6 +125,7 @@ fun TodayScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showPro by remember { mutableStateOf<ProReason?>(null) }
+    val pendingUndo by viewModel.pendingUndo.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.recordTodayOpened() }
     TodayContent(
         state = state,
@@ -132,6 +142,9 @@ fun TodayScreen(
         onOpenProviderMonth = onOpenProviderMonth,
         onOpenSettings = onOpenSettings,
         onDismissBackupNudge = viewModel::dismissBackupNudge,
+        pendingUndo = pendingUndo,
+        onUndo = viewModel::undoLast,
+        onClearUndo = viewModel::clearUndo,
     )
     showPro?.let { ProSheet(onDismiss = { showPro = null }, reason = it) }
 }
@@ -154,12 +167,39 @@ internal fun TodayContent(
     onOpenProviderMonth: (Long, Int) -> Unit = { _, _ -> },
     onOpenSettings: () -> Unit = {},
     onDismissBackupNudge: () -> Unit = {},
+    pendingUndo: UndoableMark? = null,
+    onUndo: () -> Unit = {},
+    onClearUndo: () -> Unit = {},
 ) {
     val gk = MaterialTheme.gharColors
+    val snackbarHostState = remember { SnackbarHostState() }
+    // Rows are looked up so a per-unit PRESENT reads "Delivered", the same as the chip.
+    val undoMessage = pendingUndo?.let { undoMessage(it, state.rows.firstOrNull { r -> r.provider.id == it.providerId }?.provider) }
+    val undoLabel = stringResource(R.string.today_undo_action)
+    val currentOnUndo by rememberUpdatedState(onUndo)
+    val currentOnClear by rememberUpdatedState(onClearUndo)
+    // Re-keyed on every new pending change: the old snackbar is cancelled and replaced. Going back to null
+    // (undone, or the date changed) cancels it too.
+    LaunchedEffect(pendingUndo) {
+        if (pendingUndo != null && undoMessage != null) {
+            val result = snackbarHostState.showSnackbar(
+                message = undoMessage,
+                actionLabel = undoLabel,
+                withDismissAction = true,
+                duration = SnackbarDuration.Long,
+            )
+            when (result) {
+                SnackbarResult.ActionPerformed -> currentOnUndo()
+                SnackbarResult.Dismissed -> currentOnClear()
+            }
+        }
+    }
+
     var qtyRow by remember { mutableStateOf<TodayRow?>(null) }
     var showPicker by remember { mutableStateOf(false) }
     var showExtra by remember { mutableStateOf(false) }
 
+    Box(Modifier.fillMaxSize()) {
     Column(
         Modifier.fillMaxSize()
             .background(Brush.verticalGradient(listOf(gk.hero, gk.heroVariant)))
@@ -180,6 +220,12 @@ internal fun TodayContent(
                 onOpenSettings = onOpenSettings, onDismissBackupNudge = onDismissBackupNudge,
             )
         }
+    }
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 16.dp, vertical = 12.dp),
+        snackbar = { data -> UndoSnackbar(data) },
+    )
     }
 
     if (showPicker) {
@@ -240,6 +286,46 @@ internal fun TodayContent(
             confirmButton = {},
             dismissButton = { TextButton(onClick = { showExtra = false }) { Text(stringResource(R.string.cancel)) } },
         )
+    }
+}
+
+/** Status first, then the provider, so a long name never pushes the status out. */
+@Composable
+private fun undoMessage(undo: UndoableMark, provider: ProviderEntity?): String {
+    val newStatus = undo.newStatus ?: return stringResource(R.string.today_undo_reset, undo.providerName)
+    val status = when (newStatus) {
+        DayStatus.ABSENT -> stringResource(R.string.status_absent)
+        DayStatus.HALF -> stringResource(R.string.status_half)
+        DayStatus.EXTRA -> stringResource(R.string.status_extra)
+        DayStatus.PRESENT ->
+            if (provider?.billingMode == BillingMode.PER_UNIT) stringResource(R.string.status_delivered)
+            else stringResource(R.string.status_present)
+    }
+    return stringResource(R.string.today_undo_marked, status, undo.providerName)
+}
+
+/** Default M3 snackbar colours and shape; only the message is capped and the dismiss icon described. */
+@Composable
+private fun UndoSnackbar(data: SnackbarData) {
+    val dismissCd = stringResource(R.string.today_undo_dismiss_cd)
+    Snackbar(
+        action = {
+            data.visuals.actionLabel?.let { label ->
+                TextButton(
+                    onClick = data::performAction,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    colors = ButtonDefaults.textButtonColors(contentColor = SnackbarDefaults.actionColor),
+                ) { Text(label) }
+            }
+        },
+        dismissAction = {
+            IconButton(onClick = data::dismiss, modifier = Modifier.minimumInteractiveComponentSize()) {
+                Icon(Icons.Filled.Close, contentDescription = dismissCd)
+            }
+        },
+        dismissActionContentColor = SnackbarDefaults.dismissActionContentColor,
+    ) {
+        Text(data.visuals.message, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 

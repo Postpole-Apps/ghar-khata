@@ -122,8 +122,13 @@ class FakeProStatus(pro: Boolean = false) : ProStatus {
 }
 
 class RecordingAnalytics : Analytics {
-    val events = mutableListOf<String>()
-    override fun logEvent(name: String, params: Map<String, Any>) { events += name }
+    /** Thread-safe: the ViewModel logs from viewModelScope while tests read. */
+    val events: MutableList<String> = java.util.concurrent.CopyOnWriteArrayList()
+    val params: MutableList<Pair<String, Map<String, Any>>> = java.util.concurrent.CopyOnWriteArrayList()
+    override fun logEvent(name: String, params: Map<String, Any>) {
+        this.params += name to params
+        events += name
+    }
     override fun setUserProperty(name: String, value: String?) = Unit
     override fun logScreenView(screenName: String) = Unit
     override fun recordNonFatal(throwable: Throwable) = Unit

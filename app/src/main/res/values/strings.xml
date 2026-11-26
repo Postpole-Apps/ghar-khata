@@ -403,4 +403,10 @@
     <string name="month_clear_payment_title">Clear this payment?</string>
     <string name="month_clear_payment_message">This removes the payment record for %1$s in %2$s. The amount stays due. This is only a record for you. No money moves through the app.</string>
     <string name="month_clear_payment_confirm">Clear</string>
+    <!-- Today undo snackbar. %1$s = status label (e.g. Absent), %2$s = provider name. -->
+    <string name="today_undo_marked">%1$s · %2$s</string>
+    <!-- %1$s = provider name. -->
+    <string name="today_undo_reset">Back to usual · %1$s</string>
+    <string name="today_undo_action">Undo</string>
+    <string name="today_undo_dismiss_cd">Dismiss</string>
 </resources>
