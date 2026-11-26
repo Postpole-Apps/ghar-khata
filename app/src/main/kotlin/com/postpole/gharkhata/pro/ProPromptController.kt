@@ -43,6 +43,13 @@ interface ProPrompts {
      */
     suspend fun reserve(trigger: ProPromptTrigger, screen: ProPromptScreen, freeLimitCardShowing: Boolean = false): Boolean
 
+    /**
+     * Takes the session's auto-prompt and interstitial slots for something else that must not share the session
+     * with them (the Play review flow). Atomic with [reserve]: false when an auto prompt or interstitial already
+     * took the session, otherwise true and both stay off until the next session.
+     */
+    suspend fun takeSessionExclusively(): Boolean
+
     /** The prompt is on screen: starts its cooldown and logs `pro_prompt_shown`. */
     suspend fun onShown(trigger: ProPromptTrigger)
 
@@ -61,6 +68,7 @@ object NoProPrompts : ProPrompts {
     override suspend fun recordBillMilestone() = Unit
     override suspend fun recordHardGate() = Unit
     override suspend fun reserve(trigger: ProPromptTrigger, screen: ProPromptScreen, freeLimitCardShowing: Boolean) = false
+    override suspend fun takeSessionExclusively() = true
     override suspend fun onShown(trigger: ProPromptTrigger) = Unit
     override suspend fun onDismissed(trigger: ProPromptTrigger, method: ProDismissMethod) = Unit
     override fun onCtaTap(trigger: ProPromptTrigger) = Unit
@@ -166,6 +174,13 @@ class ProPromptController(
             if (ok) autoPromptShownThisSession = true
             ok
         }
+
+    override suspend fun takeSessionExclusively(): Boolean = lock.withLock {
+        if (autoPromptShownThisSession || interstitialShownThisSession) return@withLock false
+        autoPromptShownThisSession = true
+        interstitialShownThisSession = true
+        true
+    }
 
     override suspend fun onShown(trigger: ProPromptTrigger) {
         val now = clock()

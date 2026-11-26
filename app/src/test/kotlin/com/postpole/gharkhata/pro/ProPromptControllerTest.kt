@@ -99,6 +99,32 @@ class ProPromptControllerTest {
         assertFalse(s.billSheet())
     }
 
+    @Test fun reviewTakingTheSession_blocksLaterCardAndSheet_andInterstitialFlag() = runBlocking {
+        markDays(7)
+        session().startSession()
+        val s = session()
+        s.startSession()
+        repeat(2) { s.recordBillMilestone() }
+        assertTrue(s.takeSessionExclusively())
+        assertTrue(s.autoPromptShownThisSession) // the interstitial path checks this too
+        assertFalse(s.card())
+        assertFalse(s.billSheet())
+        assertFalse(s.takeSessionExclusively())
+    }
+
+    @Test fun reviewCannotTakeTheSession_afterAnAutoPromptOrInterstitial() = runBlocking {
+        markDays(7)
+        session().startSession()
+        val a = session()
+        a.startSession()
+        assertTrue(a.card())
+        assertFalse(a.takeSessionExclusively())
+        val b = session()
+        b.startSession()
+        b.onInterstitialShown()
+        assertFalse(b.takeSessionExclusively())
+    }
+
     @Test fun twoSessionsOnTheSameDayCountOnce() = runBlocking {
         addProvider()
         session().startSession()

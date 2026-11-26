@@ -12,6 +12,7 @@ import com.postpole.gharkhata.analytics.AnalyticsParams
 import com.postpole.gharkhata.pro.ProDismissMethod
 import com.postpole.gharkhata.pro.ProPromptTrigger
 import com.postpole.gharkhata.pro.ProPrompts
+import com.postpole.gharkhata.review.ReviewPrompter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,7 @@ class ProViewModel @Inject constructor(
     private val billing: BillingRepository,
     private val analytics: Analytics,
     private val prompts: ProPrompts,
+    private val review: ReviewPrompter,
 ) : ViewModel() {
     val isPro: StateFlow<Boolean> = billing.isPro
     val price: StateFlow<String?> = billing.price
@@ -41,6 +43,7 @@ class ProViewModel @Inject constructor(
      */
     fun onShown(reason: ProReason, attribution: ProPromptTrigger? = reason.autoTrigger) {
         analytics.logEvent(AnalyticsEvents.PRO_SCREEN_VIEW, attributionParams(attribution))
+        review.onPaywallShown()
         viewModelScope.launch {
             if (reason.isHardGate) prompts.recordHardGate()
             reason.autoTrigger?.let { prompts.onShown(it) }
