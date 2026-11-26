@@ -90,12 +90,13 @@ class TodayWidget : GlanceAppWidget() {
             TodayWidgetState.build(providers, marks, today),
             TodayWidgetState.loadPrevBills(repository, today),
         )
-        provideContent { TodayWidgetContent(state) }
+        val fontScale = context.resources.configuration.fontScale
+        provideContent { TodayWidgetContent(state, fontScale) }
     }
 }
 
 @Composable
-private fun TodayWidgetContent(state: TodayState) {
+private fun TodayWidgetContent(state: TodayState, fontScale: Float) {
     val context = LocalContext.current
     val open = actionStartActivity(MainActivity.openTodayIntent(context))
     val wide = LocalSize.current.width >= WIDE.width
@@ -105,21 +106,21 @@ private fun TodayWidgetContent(state: TodayState) {
     ) {
         when {
             state.noProviders -> EmptyContent()
-            wide -> WideContent(state)
-            else -> Header(state, compact = true)
+            wide -> WideContent(state, fontScale)
+            else -> Header(state, compact = true, fontScale = fontScale)
         }
     }
 }
 
 @Composable
-private fun Header(state: TodayState, compact: Boolean) {
+private fun Header(state: TodayState, compact: Boolean, fontScale: Float) {
     val context = LocalContext.current
     val total = state.rows.size
     val date = LocalDate.ofEpochDay(state.epochDay)
         .format(DateTimeFormatter.ofPattern("EEE, d MMM", Locale.getDefault()))
     val changes = context.resources.getQuantityString(R.plurals.today_changes, state.changes, state.changes)
     val cue = state.prevBills?.takeIf { it.providers.isNotEmpty() }
-    val cueFirst = TodayWidgetState.cueFirst(context.resources.configuration.fontScale, cue != null)
+    val cueFirst = TodayWidgetState.cueFirst(fontScale, cue != null)
     Column(GlanceModifier.fillMaxWidth()) {
         Text(
             date,
@@ -196,13 +197,13 @@ private fun EmptyContent() {
 }
 
 @Composable
-private fun WideContent(state: TodayState) {
+private fun WideContent(state: TodayState, fontScale: Float) {
     val context = LocalContext.current
     val available = LocalSize.current.height.value - HEADER_HEIGHT.value - WIDGET_PADDING.value * 2
     val shown = TodayWidgetState.visibleRows(state.rows.size, available)
     val hidden = state.rows.size - shown
     Column(GlanceModifier.fillMaxSize()) {
-        Box(GlanceModifier.fillMaxWidth().height(HEADER_HEIGHT)) { Header(state, compact = false) }
+        Box(GlanceModifier.fillMaxWidth().height(HEADER_HEIGHT)) { Header(state, compact = false, fontScale = fontScale) }
         state.rows.take(shown).forEach { WidgetRow(it, state.epochDay) }
         if (hidden > 0) {
             Box(
