@@ -10,32 +10,37 @@ import com.postpole.gharkhata.domain.Schedule
 import com.postpole.gharkhata.ui.provider.FakeProStatus
 import com.postpole.gharkhata.ui.provider.RecordingAnalytics
 import com.postpole.gharkhata.ui.provider.TestDb
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import androidx.lifecycle.viewModelScope
+import com.postpole.gharkhata.ui.MainDispatcherRule
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Rule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class TodayViewModelTest {
+
+    @get:Rule
+    val mainRule = MainDispatcherRule()
+
+    // DataStore on the test dispatcher (not Dispatchers.IO) so no real thread can resume after resetMain.
+    private val dataStoreScope = CoroutineScope(mainRule.dispatcher + SupervisorJob())
 
     private val db = TestDb()
     private val analytics = RecordingAnalytics()
     private val settings = SettingsRepository(
-        androidx.datastore.preferences.core.PreferenceDataStoreFactory.create {
+        androidx.datastore.preferences.core.PreferenceDataStoreFactory.create(scope = dataStoreScope) {
             java.io.File.createTempFile("today", ".preferences_pb").also { it.delete() }
         },
     )
@@ -45,11 +50,14 @@ class TodayViewModelTest {
     private val sunday = LocalDate.now().minusDays(8).with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
     private val monday = sunday.plusDays(1)
 
-    @Before
-    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
+    private val vms = mutableListOf<TodayViewModel>()
 
+    /** Cancel viewModelScope and DataStore work so nothing outlives the test or the Main dispatcher. */
     @After
-    fun tearDown() = Dispatchers.resetMain()
+    fun tearDown() {
+        vms.forEach { it.viewModelScope.cancel() }
+        dataStoreScope.cancel()
+    }
 
     private suspend fun add(
         name: String,
@@ -68,8 +76,8 @@ class TodayViewModelTest {
     }
 
     private fun TestScope.vm(): TodayViewModel {
-        val vm = TodayViewModel(db.repository, FakeProStatus(), analytics, settings)
-        backgroundScope.launch(UnconfinedTestDispatcher()) { vm.state.collect { } }
+        val vm = TodayViewModel(db.repository, FakeProStatus(), analytics, settings).also { vms += it }
+        backgroundScope.launch(mainRule.dispatcher) { vm.state.collect { } }
         return vm
     }
 
