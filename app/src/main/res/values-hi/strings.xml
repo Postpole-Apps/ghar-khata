@@ -406,4 +406,10 @@
     <string name="month_clear_payment_title">यह पेमेंट हटाएँ?</string>
     <string name="month_clear_payment_message">%2$s में %1$s का पेमेंट रिकॉर्ड हट जाएगा। राशि बाकी रहेगी। यह केवल आपके लिए एक रिकॉर्ड है। ऐप से कोई पैसे नहीं जाते।</string>
     <string name="month_clear_payment_confirm">हटाएँ</string>
+    <!-- Today undo snackbar. Hindi. Good-faith translation: needs native review. -->
+    <!-- NEEDS NATIVE REVIEW -->
+    <string name="today_undo_marked">%1$s · %2$s</string>
+    <string name="today_undo_reset">सामान्य पर वापस · %1$s</string>
+    <string name="today_undo_action">पहले जैसा करें</string>
+    <string name="today_undo_dismiss_cd">बंद करें</string>
 </resources>
