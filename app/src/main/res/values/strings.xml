@@ -393,4 +393,10 @@
     <string name="yeartext_month">%1$s: %2$s</string>
     <string name="yeartext_month_paid">%1$s: %2$s, paid %3$s</string>
     <string name="yeartext_empty">Nothing billed in this year.</string>
+    <string name="today_backup_nudge">It\'s been a while since your last backup. Save a copy of your registers. Your data stays on your device.</string>
+    <string name="today_backup_nudge_cd">Backup reminder. Save a copy of your registers. Your data stays on your device.</string>
+    <string name="today_backup_nudge_action">Back up now</string>
+    <string name="today_backup_nudge_dismiss">Not now</string>
+    <string name="settings_backup_last">Last backup · %1$s</string>
+    <string name="settings_backup_never">Not backed up yet</string>
 </resources>

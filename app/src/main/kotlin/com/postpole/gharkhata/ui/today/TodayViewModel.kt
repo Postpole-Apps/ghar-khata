@@ -11,6 +11,7 @@ import com.postpole.gharkhata.data.DayStatus
 import com.postpole.gharkhata.data.ProviderEntity
 import com.postpole.gharkhata.data.ProviderRepository
 import com.postpole.gharkhata.data.SettingsRepository
+import com.postpole.gharkhata.domain.BackupNudge
 import com.postpole.gharkhata.domain.PrevBillsCue
 import com.postpole.gharkhata.domain.PreviousMonthBills
 import com.postpole.gharkhata.domain.ProviderBillInput
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -56,6 +58,8 @@ data class TodayState(
     val isPro: Boolean = false,
     /** Days 1–5 only: providers with a carry from earlier months. Replaces the next-bills chip. */
     val prevBills: PrevBillsCue? = null,
+    /** Quiet "save a copy" card at the top of the sheet (see [BackupNudge]). */
+    val showBackupNudge: Boolean = false,
 ) {
     val noProviders: Boolean get() = activeCount == 0
     val canAddProvider: Boolean get() = canAddActiveProvider(activeCount, isPro)
@@ -82,8 +86,12 @@ class TodayViewModel @Inject constructor(
         repository.observeActive(),
         selected.flatMapLatest { repository.observeMarksForDay(it) },
         proStatus.isPro,
-        observePrevBills(),
-    ) { day, providers, marks, isPro, prevBills ->
+        combine(
+            observePrevBills(),
+            observeBackupTimes(),
+        ) { prevBills, backup -> prevBills to backup },
+    ) { day, providers, marks, isPro, extras ->
+        val (prevBills, backup) = extras
         val byProvider = marks.associateBy { it.providerId }
         val rows = providers.mapNotNull { p ->
             val mark = byProvider[p.id]
@@ -99,8 +107,20 @@ class TodayViewModel @Inject constructor(
             activeCount = providers.size,
             isPro = isPro,
             prevBills = prevBills,
+            // Hidden until the stored timestamps have loaded, so the card never flashes for a recent backup.
+            showBackupNudge = backup != null && BackupNudge.shouldShow(
+                nowMillis = System.currentTimeMillis(),
+                lastBackupAtMillis = backup.first,
+                dismissedAtMillis = backup.second,
+                hasProviders = providers.isNotEmpty(),
+            ),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TodayState(todayEpochDay, todayEpochDay))
+
+    /** (last backup, last dismiss); null until DataStore has answered. */
+    private fun observeBackupTimes(): Flow<Pair<Long?, Long?>?> =
+        combine(settings.lastBackupAtMillis, settings.lastBackupNudgeDismissedAtMillis) { b, d -> (b to d) as Pair<Long?, Long?>? }
+            .onStart { emit(null) }
 
     /** Re-evaluates whenever rates, marks or settlements change, so settling clears the cue without a restart. */
     private fun observePrevBills(): Flow<PrevBillsCue?> {
@@ -125,6 +145,11 @@ class TodayViewModel @Inject constructor(
     fun recordTodayOpened() {
         val now = LocalDate.now().toEpochDay()
         viewModelScope.launch { settings.setLastTodayOpenEpochDay(now) }
+    }
+
+    /** "Not now" on the backup card: hides it for 14 days. */
+    fun dismissBackupNudge() {
+        viewModelScope.launch { settings.setLastBackupNudgeDismissedAtMillis(System.currentTimeMillis()) }
     }
 
     /** Moves to [epochDay]; future dates are ignored. */

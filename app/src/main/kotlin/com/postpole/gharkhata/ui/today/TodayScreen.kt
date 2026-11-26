@@ -111,6 +111,7 @@ fun TodayScreen(
     onOpenBills: () -> Unit,
     onOpenProvider: (Long) -> Unit = {},
     onOpenProviderMonth: (Long, Int) -> Unit = { _, _ -> },
+    onOpenSettings: () -> Unit = {},
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -129,6 +130,8 @@ fun TodayScreen(
         onOpenBills = onOpenBills,
         onOpenProvider = onOpenProvider,
         onOpenProviderMonth = onOpenProviderMonth,
+        onOpenSettings = onOpenSettings,
+        onDismissBackupNudge = viewModel::dismissBackupNudge,
     )
     showPro?.let { ProSheet(onDismiss = { showPro = null }, reason = it) }
 }
@@ -149,6 +152,8 @@ internal fun TodayContent(
     onOpenBills: () -> Unit = {},
     onOpenProvider: (Long) -> Unit = {},
     onOpenProviderMonth: (Long, Int) -> Unit = { _, _ -> },
+    onOpenSettings: () -> Unit = {},
+    onDismissBackupNudge: () -> Unit = {},
 ) {
     val gk = MaterialTheme.gharColors
     var qtyRow by remember { mutableStateOf<TodayRow?>(null) }
@@ -170,7 +175,10 @@ internal fun TodayContent(
             PresetSheet(onPreset)
         } else {
             Hero(state, onSelectDate, onPickDate = { showPicker = true }, onOpenBills = onOpenBills, onOpenProviderMonth = onOpenProviderMonth)
-            Sheet(state, onCycle, onEditQty = { qtyRow = it }, onAddProvider = onAddProvider, onOpenProvider = onOpenProvider)
+            Sheet(
+                state, onCycle, onEditQty = { qtyRow = it }, onAddProvider = onAddProvider, onOpenProvider = onOpenProvider,
+                onOpenSettings = onOpenSettings, onDismissBackupNudge = onDismissBackupNudge,
+            )
         }
     }
 
@@ -464,6 +472,8 @@ private fun Sheet(
     onEditQty: (TodayRow) -> Unit,
     onAddProvider: () -> Unit,
     onOpenProvider: (Long) -> Unit,
+    onOpenSettings: () -> Unit,
+    onDismissBackupNudge: () -> Unit,
 ) {
     Column(
         Modifier.fillMaxSize().clip(GharShapesExtra.SheetTop).background(MaterialTheme.colorScheme.surface),
@@ -495,6 +505,9 @@ private fun Sheet(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (state.showBackupNudge) {
+                item(key = "backup-nudge") { BackupNudgeCard(onOpenSettings, onDismissBackupNudge) }
+            }
             if (state.rows.isEmpty()) {
                 item {
                     Text(
@@ -754,5 +767,34 @@ private fun PresetCard(type: ProviderType, title: Int, subtitle: Int, style: Int
             Text(stringResource(subtitle), style = MaterialTheme.typography.bodySmall, color = fg.copy(alpha = 0.8f))
         }
         Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null, tint = fg)
+    }
+}
+
+/** Compact, dismissible reminder to save a copy; sits on its own line of actions so they stay on-screen at large font sizes. */
+@Composable
+internal fun BackupNudgeCard(onBackUp: () -> Unit, onDismiss: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val cd = stringResource(R.string.today_backup_nudge_cd)
+    Column(
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(cs.surfaceContainerHigh)
+            .semantics { contentDescription = cd }
+            .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
+    ) {
+        Text(
+            stringResource(R.string.today_backup_nudge),
+            style = MaterialTheme.typography.bodyMedium,
+            color = cs.onSurface,
+            modifier = Modifier.padding(end = 8.dp),
+        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.today_backup_nudge_dismiss))
+            }
+            TextButton(onClick = onBackUp, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.today_backup_nudge_action))
+            }
+        }
     }
 }

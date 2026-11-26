@@ -76,6 +76,9 @@ class SettingsViewModel @Inject constructor(
     val reminderMinutes: StateFlow<Int?> = settings.reminderMinutes
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    val lastBackupAtMillis: StateFlow<Long?> = settings.lastBackupAtMillis
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     private val _events = Channel<SettingsEvent>(Channel.BUFFERED)
     val events: Flow<SettingsEvent> = _events.receiveAsFlow()
 
@@ -123,6 +126,7 @@ class SettingsViewModel @Inject constructor(
                     out.use { write(it) }
                 }
                 if (format == "json") {
+                    settings.setLastBackupAtMillis(System.currentTimeMillis())
                     analytics.logEvent(
                         AnalyticsEvents.BACKUP_EXPORTED,
                         mapOf(AnalyticsParams.FORMAT to format, AnalyticsParams.ITEM_COUNT to count),
