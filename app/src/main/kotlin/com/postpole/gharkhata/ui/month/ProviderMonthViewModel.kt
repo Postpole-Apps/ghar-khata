@@ -231,6 +231,17 @@ class ProviderMonthViewModel internal constructor(
         return true
     }
 
+    /**
+     * Removes the visible month's payment record (a correction, not a settle event: no analytics, no Pro
+     * offer). No-op when there is nothing to clear. The bill recomputes from the settlements flow.
+     */
+    fun clearPayment() {
+        val s = state.value
+        if (s.provider == null || s.settlement == null) return
+        val ym = s.yearMonth
+        viewModelScope.launch { repository.deleteSettlement(providerId, ym) }
+    }
+
     fun onShared(channel: String) {
         analytics.logEvent(AnalyticsEvents.BILL_SHARED, mapOf(AnalyticsParams.FORMAT to channel))
         viewModelScope.launch { prompts.recordBillMilestone() }
