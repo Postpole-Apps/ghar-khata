@@ -1,6 +1,7 @@
 package com.postpole.gharkhata.ui.provider
 
 import androidx.lifecycle.SavedStateHandle
+import com.postpole.gharkhata.analytics.AnalyticsEvents
 import com.postpole.gharkhata.data.BillingMode
 import com.postpole.gharkhata.data.MonthSettlementEntity
 import com.postpole.gharkhata.data.ProviderEntity
@@ -82,6 +83,42 @@ class ProviderListViewModelTest {
         val vm = ProviderListViewModel(db.repository, FakeProStatus(true))
         backgroundScope.launch(UnconfinedTestDispatcher()) { vm.state.collect { } }
         return vm
+    }
+
+    private fun TestScope.listVm(analytics: RecordingAnalytics): ProviderListViewModel {
+        val vm = ProviderListViewModel(db.repository, FakeProStatus(true), analytics = analytics)
+        backgroundScope.launch(UnconfinedTestDispatcher()) { vm.state.collect { } }
+        return vm
+    }
+
+    @Test
+    fun saveOrder_changed_logsProvidersReorderedOnce_noParams() = runTest {
+        val pro = FakeProStatus(true)
+        add("A", pro); add("B", pro); add("C", pro)
+        val analytics = RecordingAnalytics()
+        val vm = listVm(analytics)
+        val ids = vm.state.value.active.map { it.provider.id }
+
+        vm.saveOrder(ids.reversed())
+
+        assertEquals(listOf(AnalyticsEvents.PROVIDERS_REORDERED), analytics.events.toList())
+        assertEquals(emptyMap<String, Any>(), analytics.params.single().second)
+        assertEquals(ids.reversed(), vm.state.value.active.map { it.provider.id })
+        assertEquals(listOf(0, 1, 2), db.providers.all.value.sortedBy { ids.reversed().indexOf(it.id) }.map { it.sortOrder })
+    }
+
+    @Test
+    fun saveOrder_unchanged_noWriteNoEvent() = runTest {
+        val pro = FakeProStatus(true)
+        add("A", pro); add("B", pro)
+        val analytics = RecordingAnalytics()
+        val vm = listVm(analytics)
+        val before = db.providers.all.value
+
+        vm.saveOrder(vm.state.value.active.map { it.provider.id })
+
+        assertTrue(analytics.events.isEmpty())
+        assertEquals(before, db.providers.all.value)
     }
 
     @Test

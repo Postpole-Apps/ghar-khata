@@ -189,6 +189,13 @@
     <string name="providers_more">और विकल्प</string>
     <string name="providers_show_archived">संग्रहित दिखाएँ</string>
     <string name="providers_hide_archived">संग्रहित छिपाएँ</string>
+    <!-- NEEDS NATIVE REVIEW -->
+    <string name="providers_reorder">क्रम बदलें</string>
+    <string name="providers_reorder_title">आज और सेवाएँ में क्रम</string>
+    <string name="providers_reorder_up_cd">%1$s को ऊपर करें</string>
+    <string name="providers_reorder_down_cd">%1$s को नीचे करें</string>
+    <string name="providers_reorder_moved">%1$s, %3$d में से %2$d नंबर पर</string>
+    <string name="providers_reorder_save">क्रम सेव करें</string>
 
     <!-- Provider Month -->
     <string name="month_back">वापस</string>

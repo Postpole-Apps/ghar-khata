@@ -19,6 +19,8 @@ class ProviderRepository @Inject constructor(
     suspend fun getProvider(id: Long): ProviderEntity? = providers.getById(id)
     suspend fun saveProvider(provider: ProviderEntity): Long = providers.upsert(provider)
     suspend fun setArchived(id: Long, archived: Boolean) = providers.setArchived(id, archived)
+    suspend fun reorder(idsInOrder: List<Long>) = providers.reorder(idsInOrder)
+    suspend fun nextSortOrder(): Int = providers.maxSortOrder() + 1
     suspend fun deleteProvider(provider: ProviderEntity) = providers.delete(provider)
 
     fun observeRates(providerId: Long): Flow<List<RateChangeEntity>> = rates.observeFor(providerId)

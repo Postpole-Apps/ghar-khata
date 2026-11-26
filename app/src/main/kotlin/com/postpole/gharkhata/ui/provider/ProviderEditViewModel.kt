@@ -171,6 +171,7 @@ class ProviderEditViewModel @Inject constructor(
                     phone = f.phone.trim().ifEmpty { null },
                     note = f.note.trim().ifEmpty { null },
                     createdAt = System.currentTimeMillis(),
+                    sortOrder = repository.nextSortOrder(),
                 ),
             )
             repository.addRate(RateChangeEntity(providerId = id, effectiveFromEpochDay = f.startEpochDay, amountPaise = paise))

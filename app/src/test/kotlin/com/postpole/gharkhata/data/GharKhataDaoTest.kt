@@ -130,6 +130,53 @@ class GharKhataDaoTest {
     }
 
     @Test
+    fun reorder_writesSequentialSortOrder() = runBlocking {
+        val dao = db.providerDao()
+        val a = dao.upsert(provider("A"))
+        val b = dao.upsert(provider("B"))
+        val c = dao.upsert(provider("C"))
+
+        dao.reorder(listOf(c, a, b))
+
+        assertEquals(listOf(0, 1, 2), listOf(c, a, b).map { dao.getById(it)!!.sortOrder })
+        assertEquals(listOf("C", "A", "B"), dao.observeActive().first().map { it.name })
+    }
+
+    @Test
+    fun reorder_doesNotTouchArchived() = runBlocking {
+        val dao = db.providerDao()
+        val a = dao.upsert(provider("A", sortOrder = 5))
+        val b = dao.upsert(provider("B", sortOrder = 6))
+        val old = dao.upsert(provider("Old", archived = true, sortOrder = 9))
+
+        dao.reorder(listOf(b, a))
+
+        assertEquals(9, dao.getById(old)!!.sortOrder)
+        assertEquals(0, dao.getById(b)!!.sortOrder)
+        assertEquals(1, dao.getById(a)!!.sortOrder)
+    }
+
+    @Test
+    fun maxSortOrder_emptyTable_isMinusOne() = runBlocking {
+        val dao = db.providerDao()
+        assertEquals(-1, dao.maxSortOrder())
+        dao.upsert(provider("A", sortOrder = 4))
+        assertEquals(4, dao.maxSortOrder())
+    }
+
+    @Test
+    fun observeActive_followsSavedOrder() = runBlocking {
+        val dao = db.providerDao()
+        val a = dao.upsert(provider("Amy"))
+        val z = dao.upsert(provider("Zed"))
+        assertEquals(listOf("Amy", "Zed"), dao.observeActive().first().map { it.name })
+
+        dao.reorder(listOf(z, a))
+
+        assertEquals(listOf("Zed", "Amy"), dao.observeActive().first().map { it.name })
+    }
+
+    @Test
     fun settlements_upsertGetDelete() = runBlocking {
         val id = newProvider()
         val dao = db.monthSettlementDao()

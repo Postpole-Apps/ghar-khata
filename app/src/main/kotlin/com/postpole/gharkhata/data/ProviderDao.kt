@@ -37,6 +37,18 @@ interface ProviderDao {
     )
     suspend fun setArchived(id: Long, archived: Boolean)
 
+    @Query("UPDATE providers SET sortOrder = :order WHERE id = :id")
+    suspend fun setSortOrder(id: Long, order: Int)
+
+    /** Writes 0..n-1 in the given order, atomically. Providers not listed (archived) are untouched. */
+    @Transaction
+    suspend fun reorder(idsInOrder: List<Long>) {
+        idsInOrder.forEachIndexed { i, id -> setSortOrder(id, i) }
+    }
+
+    @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM providers")
+    suspend fun maxSortOrder(): Int
+
     @Delete
     suspend fun delete(provider: ProviderEntity)
 
