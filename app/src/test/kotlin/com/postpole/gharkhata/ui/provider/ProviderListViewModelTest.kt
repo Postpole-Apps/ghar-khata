@@ -91,11 +91,6 @@ class ProviderListViewModelTest {
         return vm
     }
 
-    private suspend fun waitFor(timeoutMs: Long = 2_000, condition: () -> Boolean) {
-        val end = System.currentTimeMillis() + timeoutMs
-        while (!condition() && System.currentTimeMillis() < end) Thread.sleep(10)
-    }
-
     @Test
     fun saveOrder_changed_logsProvidersReorderedOnce_noParams() = runTest {
         val pro = FakeProStatus(true)
@@ -105,7 +100,6 @@ class ProviderListViewModelTest {
         val ids = vm.state.value.active.map { it.provider.id }
 
         vm.saveOrder(ids.reversed())
-        waitFor { analytics.events.isNotEmpty() }
 
         assertEquals(listOf(AnalyticsEvents.PROVIDERS_REORDERED), analytics.events.toList())
         assertEquals(emptyMap<String, Any>(), analytics.params.single().second)
@@ -122,7 +116,6 @@ class ProviderListViewModelTest {
         val before = db.providers.all.value
 
         vm.saveOrder(vm.state.value.active.map { it.provider.id })
-        Thread.sleep(100)
 
         assertTrue(analytics.events.isEmpty())
         assertEquals(before, db.providers.all.value)
