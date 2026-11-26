@@ -192,6 +192,9 @@
     <!-- Provider Month -->
     <string name="month_back">Back</string>
     <string name="month_edit_provider">Edit provider</string>
+    <!-- %1$s = provider name. -->
+    <string name="month_call_cd">Call %1$s</string>
+    <string name="month_call_no_app">No app on this phone can make calls.</string>
     <string name="month_prev">Previous month</string>
     <string name="month_next">Next month</string>
     <string name="month_total_due_so_far">TOTAL DUE · %1$s SO FAR</string>
