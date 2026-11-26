@@ -67,7 +67,9 @@ private object WidgetColors {
     val absent = pair(LightColors.errorContainer, DarkColors.errorContainer)
     val onAbsent = pair(LightColors.onErrorContainer, DarkColors.onErrorContainer)
     val half = pair(LightGharColors.saffronContainer, DarkGharColors.saffronContainer)
-    val onHalf = pair(LightGharColors.onSaffronContainer, DarkGharColors.onSaffronContainer)
+    /** Text-safe saffron for the cue: 7.75:1 on the light hero, 9.64:1 on the dark hero. */
+    val saffronText = pair(DarkGharColors.saffron, DarkGharColors.saffron)
+    val onHalf =pair(LightGharColors.onSaffronContainer, DarkGharColors.onSaffronContainer)
 }
 
 private val COMPACT = DpSize(110.dp, 110.dp)
@@ -117,11 +119,16 @@ private fun Header(state: TodayState, compact: Boolean) {
         .format(DateTimeFormatter.ofPattern("EEE, d MMM", Locale.getDefault()))
     val changes = context.resources.getQuantityString(R.plurals.today_changes, state.changes, state.changes)
     val cue = state.prevBills?.takeIf { it.providers.isNotEmpty() }
+    val cueFirst = TodayWidgetState.cueFirst(context.resources.configuration.fontScale, cue != null)
     Column(GlanceModifier.fillMaxWidth()) {
         Text(
             date,
             style = TextStyle(color = WidgetColors.onBackgroundVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold),
         )
+        if (cueFirst && cue != null) {
+            PrevBillsLine(context, cue, compact)
+            return@Column
+        }
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 "$total",
@@ -134,7 +141,7 @@ private fun Header(state: TodayState, compact: Boolean) {
             )
         }
         if (cue != null) {
-            PrevBillsLine(context, cue)
+            PrevBillsLine(context, cue, compact)
         } else {
             Text(
                 changes,
@@ -146,22 +153,23 @@ private fun Header(state: TodayState, compact: Boolean) {
 
 /** Saffron bills-ready line that replaces the changes line. Tapping it (like the rest of the widget) opens Today. */
 @Composable
-private fun PrevBillsLine(context: Context, cue: PrevBillsCue) {
+private fun PrevBillsLine(context: Context, cue: PrevBillsCue, compact: Boolean) {
     val month = BillTextFormatter.monthShort(cue.previousMonth, Locale.getDefault())
     val single = cue.providers.singleOrNull()
     val label: String
     val desc: String
     if (single != null) {
-        label = context.getString(R.string.today_prev_bills_one, single.name, month)
-        desc = context.getString(R.string.widget_prev_bills_cd_one, single.name, month)
+        val name = TodayWidgetState.cueName(single.name)
+        label = context.getString(R.string.today_prev_bills_one, name, month)
+        desc = context.getString(R.string.widget_prev_bills_cd_one, name, month)
     } else {
         label = context.getString(R.string.today_prev_bills_many, cue.providers.size, month)
         desc = context.getString(R.string.widget_prev_bills_cd_many, cue.providers.size, month)
     }
     Text(
         label,
-        maxLines = 2,
-        style = TextStyle(color = WidgetColors.half, fontSize = 12.sp, fontWeight = FontWeight.Bold),
+        maxLines = if (compact) 2 else 1,
+        style = TextStyle(color = WidgetColors.saffronText, fontSize = 12.sp, fontWeight = FontWeight.Bold),
         modifier = GlanceModifier.fillMaxWidth().semantics { contentDescription = desc },
     )
 }

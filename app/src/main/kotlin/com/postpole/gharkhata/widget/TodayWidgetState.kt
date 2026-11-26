@@ -80,5 +80,14 @@ object TodayWidgetState {
         return if (total <= fit) total else (fit - 1).coerceAtLeast(0)
     }
 
+    /** Caps a provider name in the cue so the month after it stays visible. */
+    fun cueName(name: String, max: Int = CUE_NAME_MAX): String =
+        if (name.length > max) name.take(max - 1) + "…" else name
+
+    /** At large font scale the cue goes right under the date and the counter row is dropped. */
+    fun cueFirst(fontScale: Float, hasCue: Boolean): Boolean = hasCue && fontScale >= CUE_FIRST_FONT_SCALE
+
+    const val CUE_NAME_MAX = 12
+    const val CUE_FIRST_FONT_SCALE = 1.3f
     const val ROW_HEIGHT_DP = 48f
 }
