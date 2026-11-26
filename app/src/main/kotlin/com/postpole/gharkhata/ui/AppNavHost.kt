@@ -23,6 +23,10 @@ import com.postpole.gharkhata.ads.BannerPlacement
 import com.postpole.gharkhata.pro.ProPromptScreen
 import com.postpole.gharkhata.pro.ProPromptTrigger
 import com.postpole.gharkhata.pro.ProPrompts
+import com.postpole.gharkhata.review.NoReviewPrompter
+import com.postpole.gharkhata.review.ReviewPrompter
+import com.postpole.gharkhata.review.launchInAppReview
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -122,8 +126,17 @@ internal fun isInterstitialDestination(route: String?): Boolean =
 /** Settle time after leaving Bill preview before the interstitial may show. */
 private const val INTERSTITIAL_SETTLE_MS = 1_500L
 
+/** Settle time on Today before the review flow may be requested. */
+private const val REVIEW_SETTLE_MS = 2_000L
+
 @Composable
-fun AppNavHost(ads: AdsManager, prompts: ProPrompts, onScreen: (String) -> Unit = {}, goToToday: Int = 0) {
+fun AppNavHost(
+    ads: AdsManager,
+    prompts: ProPrompts,
+    review: ReviewPrompter = NoReviewPrompter,
+    onScreen: (String) -> Unit = {},
+    goToToday: Int = 0,
+) {
     val navController = rememberNavController()
     // Bumped each time Bill preview is left for Today / Providers / Month.
     var billExitTick by remember { mutableIntStateOf(0) }
@@ -171,6 +184,22 @@ fun AppNavHost(ads: AdsManager, prompts: ProPrompts, onScreen: (String) -> Unit 
             lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
         ) {
             if (ads.showInterstitialIfAllowed(activity)) prompts.onInterstitialShown()
+        }
+    }
+
+    // Play In-App Review: a rest point is being back on Today for a moment, Activity resumed. The policy decides
+    // (once, after the first full month summary, never in the first session or next to a paywall / Pro prompt /
+    // interstitial). No custom UI and no gating: launch and carry on whatever happens.
+    LaunchedEffect(route) {
+        if (route != Routes.TODAY || activity == null) return@LaunchedEffect
+        delay(REVIEW_SETTLE_MS)
+        if (!lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) return@LaunchedEffect
+        try {
+            if (review.requestIfEligible()) launchInAppReview(activity)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // The app keeps working when the review flow can't run.
         }
     }
 
