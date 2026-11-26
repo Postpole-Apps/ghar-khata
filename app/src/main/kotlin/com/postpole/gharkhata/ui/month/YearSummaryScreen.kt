@@ -1,5 +1,8 @@
 package com.postpole.gharkhata.ui.month
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -18,12 +21,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,7 +71,34 @@ fun YearSummaryScreen(
         ProSheet(onDismiss = onBack, reason = ProReason.YEAR_SUMMARY)
         return
     }
-    YearSummaryContent(state, onBack, viewModel::previousYear, viewModel::nextYear)
+    val context = LocalContext.current
+    val formatter = remember(context) { YearTextFormatter(StringSource { id, args -> context.getString(id, *args) }) }
+    YearSummaryContent(
+        state, onBack, viewModel::previousYear, viewModel::nextYear,
+        onShare = {
+            val provider = state.provider
+            val summary = state.summary
+            if (provider != null && summary != null) {
+                shareYearText(context, formatter.format(provider.name, summary))
+                viewModel.onShared(summary.months.size)
+            }
+        },
+    )
+}
+
+/** Plain text via the system share sheet. Needs no permission. */
+private fun shareYearText(context: Context, text: String) {
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    val chooser = Intent.createChooser(send, context.getString(R.string.year_share_chooser))
+    try {
+        if (context !is android.app.Activity) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(chooser)
+    } catch (_: ActivityNotFoundException) {
+        android.widget.Toast.makeText(context, R.string.bill_share_failed, android.widget.Toast.LENGTH_SHORT).show()
+    }
 }
 
 /** Stateless year summary (also used by the screenshot tests). */
@@ -75,13 +108,14 @@ internal fun YearSummaryContent(
     onBack: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
+    onShare: () -> Unit = {},
 ) {
     val gk = MaterialTheme.gharColors
     val cs = MaterialTheme.colorScheme
     val provider = state.provider
     val summary = state.summary
     Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(gk.hero, gk.heroVariant))).statusBarsPadding()) {
-        Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.month_back), tint = gk.onHero)
             }
@@ -90,6 +124,15 @@ internal fun YearSummaryContent(
                 style = MaterialTheme.typography.titleLarge, color = gk.onHero, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
+            if (provider != null && summary != null) {
+                IconButton(onClick = onShare) {
+                    Icon(
+                        Icons.Filled.Share,
+                        contentDescription = stringResource(R.string.year_share_cd, provider.name, state.year),
+                        tint = gk.onHero,
+                    )
+                }
+            }
         }
         if (provider == null || summary == null) {
             if (state.loaded) Text(stringResource(R.string.month_not_found), color = gk.onHero, modifier = Modifier.padding(24.dp))

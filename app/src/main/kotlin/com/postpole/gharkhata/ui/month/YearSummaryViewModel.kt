@@ -3,6 +3,9 @@ package com.postpole.gharkhata.ui.month
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.postpole.gharkhata.analytics.Analytics
+import com.postpole.gharkhata.analytics.AnalyticsEvents
+import com.postpole.gharkhata.analytics.AnalyticsParams
 import com.postpole.gharkhata.data.ProviderEntity
 import com.postpole.gharkhata.data.ProviderRepository
 import com.postpole.gharkhata.domain.YearSummary
@@ -30,12 +33,13 @@ data class YearState(
 class YearSummaryViewModel internal constructor(
     savedState: SavedStateHandle,
     repository: ProviderRepository,
+    private val analytics: Analytics,
     private val todayProvider: () -> Long,
 ) : ViewModel() {
 
     @Inject
-    constructor(savedState: SavedStateHandle, repository: ProviderRepository) :
-        this(savedState, repository, { LocalDate.now().toEpochDay() })
+    constructor(savedState: SavedStateHandle, repository: ProviderRepository, analytics: Analytics) :
+        this(savedState, repository, analytics, { LocalDate.now().toEpochDay() })
 
     private val providerId: Long = savedState.get<Long>("id") ?: 0L
     private val today = todayProvider()
@@ -62,6 +66,14 @@ class YearSummaryViewModel internal constructor(
             canGoNext = year < currentYear,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), YearState(selected.value))
+
+    /** Logs one year-text share: enum format plus the number of months included, never names or amounts. */
+    fun onShared(monthCount: Int) {
+        analytics.logEvent(
+            AnalyticsEvents.BILL_SHARED,
+            mapOf(AnalyticsParams.FORMAT to "year_text", AnalyticsParams.ITEM_COUNT to monthCount),
+        )
+    }
 
     fun previousYear() {
         if (state.value.canGoPrevious) selected.value -= 1
