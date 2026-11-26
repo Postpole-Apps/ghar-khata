@@ -220,6 +220,7 @@ fun AppNavHost(ads: AdsManager, prompts: ProPrompts, onScreen: (String) -> Unit 
                     onOpenBills = { switchTab(Routes.PROVIDERS) },
                     onOpenProvider = { navController.navigate(Routes.providerMonth(it)) },
                     onOpenProviderMonth = { id, yyyymm -> navController.navigate(Routes.providerMonth(id, yyyymm)) },
+                    onOpenSettings = { switchTab(Routes.SETTINGS) },
                 )
             }
             composable(Routes.PROVIDERS) {

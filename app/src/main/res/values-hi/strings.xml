@@ -394,4 +394,11 @@
     <string name="yeartext_month">%1$s: %2$s</string>
     <string name="yeartext_month_paid">%1$s: %2$s, चुकाया %3$s</string>
     <string name="yeartext_empty">इस साल कोई बिल नहीं।</string>
+    <!-- Backup nudge. Hindi. Good-faith translation: needs native review. -->
+    <string name="today_backup_nudge">पिछली बैकअप को कुछ समय हो गया है। अपने रजिस्टर की एक कॉपी सेव करें। आपका डेटा आपके डिवाइस पर रहता है।</string>
+    <string name="today_backup_nudge_cd">बैकअप रिमाइंडर। अपने रजिस्टर की एक कॉपी सेव करें। आपका डेटा आपके डिवाइस पर रहता है।</string>
+    <string name="today_backup_nudge_action">अभी बैकअप लें</string>
+    <string name="today_backup_nudge_dismiss">अभी नहीं</string>
+    <string name="settings_backup_last">पिछली बैकअप · %1$s</string>
+    <string name="settings_backup_never">अभी तक बैकअप नहीं हुआ</string>
 </resources>

@@ -109,6 +109,7 @@ fun SettingsScreen(
     val dynamicColor by viewModel.dynamicColor.collectAsStateWithLifecycle()
     val currency by viewModel.defaultCurrency.collectAsStateWithLifecycle()
     val reminderMinutes by viewModel.reminderMinutes.collectAsStateWithLifecycle()
+    val lastBackupAtMillis by viewModel.lastBackupAtMillis.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val resolver = context.contentResolver
     val snackbarHostState = remember { SnackbarHostState() }
@@ -185,6 +186,7 @@ fun SettingsScreen(
             dynamicColor = dynamicColor,
             currency = currency,
             reminderMinutes = reminderMinutes,
+            lastBackupAtMillis = lastBackupAtMillis,
             onUpgrade = { showPro = "general" },
             onRestorePurchases = viewModel::restore,
             onBackup = { exportJson.launch(backupFileName("json")) },
@@ -339,6 +341,7 @@ internal fun SettingsContent(
     dynamicColor: Boolean,
     currency: String?,
     reminderMinutes: Int?,
+    lastBackupAtMillis: Long? = null,
     onUpgrade: () -> Unit = {},
     onRestorePurchases: () -> Unit = {},
     onBackup: () -> Unit = {},
@@ -384,7 +387,14 @@ internal fun SettingsContent(
         ) {
             SectionHeader(R.string.settings_section_data)
             SettingsGroup {
-                SettingsRow(Icons.Outlined.FileUpload, stringResource(R.string.backup_export_json), stringResource(R.string.backup_export_json_hint), onClick = onBackup)
+                val lastBackupLine = lastBackupAtMillis?.let {
+                    val date = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(it))
+                    stringResource(R.string.settings_backup_last, date)
+                } ?: stringResource(R.string.settings_backup_never)
+                SettingsRow(
+                    Icons.Outlined.FileUpload, stringResource(R.string.backup_export_json),
+                    stringResource(R.string.backup_export_json_hint) + "\n" + lastBackupLine, onClick = onBackup,
+                )
                 SettingsRow(Icons.Outlined.Restore, stringResource(R.string.backup_import_json), stringResource(R.string.backup_import_json_hint), onClick = onRestoreBackup)
                 SettingsRow(
                     Icons.Outlined.TableChart, stringResource(R.string.backup_export_csv_pro), stringResource(R.string.backup_export_csv_hint),

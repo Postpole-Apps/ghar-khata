@@ -57,6 +57,20 @@ class SettingsRepository @Inject constructor(
         dataStore.edit { it[LAST_TODAY_OPEN] = epochDay }
     }
 
+    /** Epoch millis of the last successful JSON export; null = never. CSV export and restore do not count. */
+    val lastBackupAtMillis: Flow<Long?> = dataStore.data.map { it[LAST_BACKUP_AT] }
+
+    suspend fun setLastBackupAtMillis(millis: Long) {
+        dataStore.edit { it[LAST_BACKUP_AT] = millis }
+    }
+
+    /** Epoch millis the Today backup card was last dismissed; null = never. */
+    val lastBackupNudgeDismissedAtMillis: Flow<Long?> = dataStore.data.map { it[BACKUP_NUDGE_DISMISSED_AT] }
+
+    suspend fun setLastBackupNudgeDismissedAtMillis(millis: Long) {
+        dataStore.edit { it[BACKUP_NUDGE_DISMISSED_AT] = millis }
+    }
+
     suspend fun setDynamicColor(enabled: Boolean) {
         dataStore.edit { it[DYNAMIC_COLOR] = enabled }
     }
@@ -72,6 +86,8 @@ class SettingsRepository @Inject constructor(
     private companion object {
         val REMINDER_MINUTES = intPreferencesKey("reminder_minutes")
         val LAST_TODAY_OPEN = longPreferencesKey("last_today_open_epoch_day")
+        val LAST_BACKUP_AT = longPreferencesKey("last_backup_at_millis")
+        val BACKUP_NUDGE_DISMISSED_AT = longPreferencesKey("backup_nudge_dismissed_at_millis")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val DEFAULT_CURRENCY = stringPreferencesKey("default_currency")
